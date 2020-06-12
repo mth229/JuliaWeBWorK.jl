@@ -180,7 +180,7 @@ Formula(ex) = "Formula(\"$(string(ex))\")"
 raw"""
    List(tuple)
 
-For List comparison, the function  should return a tuple of answers  wrapped in  `List`; e.g. (`List((1,2,3))`).
+For List comparison, the function  should return answers  wrapped in  `List`; e.g. (`List(1,2,3)`).
 
 Example
 ```
@@ -193,7 +193,7 @@ randomizer = (3:5,)
 numericq(question,  answer, randomizer)
 ```
 """
-List(ex::Tuple) = "List(\"" * join(string.(ex), ",") * "\")"
+List(ex::Tuple) = "List(" * join(string.(ex), ",") * ")"
 List(v::Vector) = List(tuple(v...))
 
 
@@ -303,7 +303,7 @@ create_answer_tpl(r::AbstractNumericQ) = """
 \$a{{.}}aa{{:id}} = \$list{{:id}}->[\$index{{:id}}][{{.}}-1];
 {{/:inds}}
 {{#:ainds}}
-\$ans{{.}}aa{{:id}}=Compute("\$list{{:id}}->[\$index{{:id}}][{{:N}}+{{.}}-1]");
+\$ans{{.}}aa{{:id}}=List(\$list{{:id}}->[\$index{{:id}}][{{:N}}+{{.}}-1]);
 {{#:ainds}}
 
 """
@@ -352,7 +352,7 @@ struct FixedNumericQ  <: AbstractNumericQ
     ordered
 end
 
-function  fixed_numericq(fn, question,  solution="",tolerance=1e-4, ordered=false)
+function  fixed_numericq(fn, question,  solution="",tolerance=(1e-4), ordered=false)
 
     id = string(hash((question, solution)))
     FixedNumericQ(id, question, solution, fn(),  tolerance,ordered)
@@ -362,7 +362,7 @@ end
 function answer_tpl(r::Union{NumericQ, FixedNumericQ})
     strict = r.ordered ? ", ordered=>'strict'" :  ""
     """
-ANS( \$ans1aa{{:id}}->cmp(tolerance=>$(r.tolerance))  $strict );
+ANS( \$ans1aa{{:id}}->cmp(tolerance=>$(r.tolerance), tolType=>"absolute"  $strict ));
 """
 end
 
@@ -370,7 +370,7 @@ end
 
 
 create_answer(r::FixedNumericQ) = """
-    \$ans1aa$(r.id) =  Compute($(r.answer));
+    \$ans1aa$(r.id) =  List($(r.answer));
 """
 
 ##
@@ -393,7 +393,7 @@ struct MultiNumericQ <: AbstractNumericQ
 end
 
 """
-    multinumericq(questions, answer_fns, vars, solutions; tolerances=1e-4*zeros(length(questions)))
+    multinumericq(questions, answer_fns, vars, solutions; tolerances=(1e-2)*zeros(length(questions)))
 
 Used to share randomized parameters over several questions.
 
@@ -411,7 +411,7 @@ randomizer = (2:6, 2:6)
 multinumericq((q1,q2), (a1,a2), randomizer)
 ```
 """
-function multinumericq(questions, fns, vars, solutions=""; tolerances=1e-4*ones(length(questions)))
+function multinumericq(questions, fns, vars, solutions=""; tolerances=(1e-2)*ones(length(questions)))
 
     id =  string(hash((questions, fns, vars)))
     MultiNumericQ(id, vars, fns, questions, solutions, tolerances)
@@ -428,7 +428,7 @@ end
 function answer_tpl(r::MultiNumericQ)
     buf = IOBuffer()
     for i in eachindex(r.fns)
-        println(buf, "ANS( \$ans$(i)aa{{:id}}->cmp(tolerance=>$(r.tolerances[i]) ));")
+        println(buf, """ANS( \$ans$(i)aa{{:id}}->cmp(tolerance=>$(r.tolerances[i]), tolType=>"absolute" ));""")
     end
     String(take!(buf))
 end
