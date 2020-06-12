@@ -57,7 +57,9 @@ end
 function Base.show(io::IO, ::MIME"text/pg", md::Markdown.Code)
     println(io, "\n\$PAR")
     for l  in  split(md.code, "\n")
-        println(io, "⋮\\(\\verb~ $l ~\\) \$BR")
+        # within  "\verb~" ~ \$var is not  needed, only $
+        lr = replace(l, "\\\$"=> "\$")
+        println(io, "⋮\\(\\verb~ $lr ~\\) \$BR")
     end
 end
 
