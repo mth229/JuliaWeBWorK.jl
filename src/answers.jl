@@ -441,3 +441,59 @@ function show_question(r::MultiNumericQ)
     String(take!(buf))
 end
 
+
+
+
+
+##
+## --------------------------------------------------
+##
+
+struct IFrameQ <: AbstractQ
+    id
+    url
+    width
+    height
+    alt
+end
+
+"""
+    iframe(url, [alt]; [width], [height])
+
+Embed the web page specified in `url` in the page.
+
+Example (from https://webwork.maa.org/wiki/IframeEmbedding1)
+
+```
+r = iframe("https://docs.google.com/presentation/d/1pk0FxsamBuZsVh1WGGmHGEb5AlfC68KUlz7zRRIYAUg/embed#slide=id.i0";
+    width=555, height=451)
+```
+"""
+function iframe(url, alt="An embedded web page"; width=600, height=400)
+    id = hash((url, alt, width,height))
+    IFrameQ(id, url, width, height, alt)
+end
+
+create_answer_tpl(r::IFrameQ) = """
+\$iframe{{:id}} = MODES(
+HTML=> 
+"<iframe src='$(r.url)'
+frameborder='0' width='{{:width}}' height='{{:height}}'></iframe>", 
+TeX =>
+"{{:alt}}"
+);
+"""
+
+function create_answer(r::IFrameQ)
+    Mustache.render(create_answer_tpl(r), (id=r.id, width=r.width, height=r.height, alt=r.alt))
+end
+
+function show_question(r::IFrameQ)
+   """
+\${BCENTER}
+\$iframe$(r.id)
+\${ECENTER}
+"""
+end
+
+show_answer(r::IFrameQ) = ""

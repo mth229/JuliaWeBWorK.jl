@@ -12,11 +12,13 @@ using Mustache
 
 export Page
 export radioq, numericq, multinumericq
+export iframe
 export List,  Formula,  Interval 
 
 include("markdown-additions.jl")
 include("answers.jl")
 include("page.jl")
+
 
 
 
