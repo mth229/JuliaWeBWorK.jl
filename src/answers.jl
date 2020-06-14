@@ -62,13 +62,17 @@ abstract type AbstractQ end
 
 create_answer(r::AbstractQ) = throw(ArgumentError("no default method"))
 
-function show_question(r::AbstractQ)
+function show_question(r::AbstractQ, i=1)
     question = escape_string(r.question, r.id)
-    Mustache.render(question_tpl(r), (id=r.id, question=question))
+    answer = "\\\$ans$(i)aa$(r.id)"
+    Mustache.render(question_tpl(r), (id=r.id, question=question, answer=answer))
 
 end
 
-show_answer(r::AbstractQ) = Mustache.render(answer_tpl(r),  (id=r.id))
+function show_answer(r::AbstractQ, i=1)
+    answer = "\$ans$(i)aa$(r.id)"
+    Mustache.render(answer_tpl(r),  (id=r.id, answer=answer))
+end
 
 show_solution(r::AbstractQ) = ""
 
@@ -98,22 +102,22 @@ end
 
 
 create_answer_tpl(r::RadioQ) = """
-\$radio{{:id}} = RadioButtons(
+\$ans1aa{{:id}} = RadioButtons(
 {{{:answers}}}, {{{:answer}}}); 
 """
 
-question_tpl(r::RadioQ) = """
+question_tpl(r::RadioQ,i=1) = """
 
 {{{:question}}}
 
 \$PAR
 
-\\{ \$radio{{:id}}->buttons() \\}
+\\{ \$ans1aa{{:id}}->buttons() \\}
 
 """
 
 answer_tpl(r::RadioQ) = """
-ANS( \$radio$(r.id)->cmp() );
+ANS( \$ans1aa$(r.id)->cmp() );
 """
 
 function create_answer(r::RadioQ)
@@ -215,7 +219,29 @@ function Interval(a,b)
 end
 
 
+"""
+    Plot(p)
 
+Convert plot  to `png`  object; run `Base64.base64encode`; wrap  for inclusion into `img` tag.
+
+Works for `Plots`, and would work for other graphing problems with a   `show(io, MIME("text/png"), p)` method.
+"""
+function Plot(p)
+    io  = IOBuffer()
+    show(io, MIME("image/png"), p)
+    data = Base64.base64encode(take!(io))
+    close(io)
+
+    io = IOBuffer()
+    print(io,"data:image/gif;base64,")
+    print(io,data)
+    String(take!(io))
+end
+
+
+##
+## --------------------------------------------------
+##
 
 struct NumericQ <: AbstractNumericQ
     id
@@ -264,6 +290,14 @@ numericq("What is \\( {1,2,{{:a1}} } \\)?",  (a) -> List((1,2,a)), (3:6), ordere
 numericq("What is the derivative of  \\( \\sin(x) \\)?", () -> (@vars x;  Formula(diff(sin(x),x))),  ())
 ```
 
+Output of `Plots` can be  used in a  question by wrapping figure in  `Plot(p)`.  (This will  not show up  in  a  hard copy.)
+
+```
+using Plots
+p = plot(sin, 0, 2pi);
+plot!(zero);
+q = numericq("![A Plot](\$(Plot(p))) This is a plot  of ``sin`` over what interval?", ()->Interval(0, 2pi),())
+```
 
 !! note "TODO"
    Should consolidate arguments  to  `cmp` (`tolerance`,   `ordered`)
@@ -362,7 +396,7 @@ end
 function answer_tpl(r::Union{NumericQ, FixedNumericQ})
     strict = r.ordered ? ", ordered=>'strict'" :  ""
     """
-ANS( \$ans1aa{{:id}}->cmp(tolerance=>$(r.tolerance), tolType=>"absolute"  $strict ));
+ANS( {{{:answer}}}->cmp(tolerance=>$(r.tolerance), tolType=>"absolute"  $strict ));
 """
 end
 
@@ -409,6 +443,12 @@ a2 = (x,y) -> x-y
 randomizer = (2:6, 2:6)
 
 multinumericq((q1,q2), (a1,a2), randomizer)
+
+
+!!! note
+    THIS NEEDS TO BE GENERALIZED. As it it only shares randomness  over numeric questions. We need instead a means  to share  
+    The random M.
+
 ```
 """
 function multinumericq(questions, fns, vars, solutions=""; tolerances=(1e-2)*ones(length(questions)))
@@ -427,14 +467,15 @@ end
 
 function answer_tpl(r::MultiNumericQ)
     buf = IOBuffer()
-    for i in eachindex(r.fns)
+
+    for (i,question) in enumerate(r.questions)
         println(buf, """ANS( \$ans$(i)aa{{:id}}->cmp(tolerance=>$(r.tolerances[i]), tolType=>"absolute" ));""")
     end
     String(take!(buf))
 end
-function show_question(r::MultiNumericQ)
+function show_question(r::MultiNumericQ, args...)
     buf = IOBuffer()
-    for question in r.questions
+    for (i,question) in enumerate(r.questions)
         question = escape_string(question, r.id)
         println(buf, Mustache.render(question_tpl(r), (id=r.id, question=question)))
     end
@@ -444,12 +485,15 @@ end
 
 
 
-
 ##
-## --------------------------------------------------
+## ------------- Output only widgets ------------------------------
 ##
 
-struct IFrameQ <: AbstractQ
+abstract type AbstractOutputQ <: AbstractQ end
+
+show_answer(r::AbstractOutputQ) = ""
+
+struct IFrameQ <: AbstractOutputQ
     id
     url
     width
@@ -488,7 +532,7 @@ function create_answer(r::IFrameQ)
     Mustache.render(create_answer_tpl(r), (id=r.id, width=r.width, height=r.height, alt=r.alt))
 end
 
-function show_question(r::IFrameQ)
+function show_question(r::IFrameQ, args...)
    """
 \${BCENTER}
 \$iframe$(r.id)
@@ -497,3 +541,43 @@ function show_question(r::IFrameQ)
 end
 
 show_answer(r::IFrameQ) = ""
+
+
+##
+## --------------------------------------------------
+##
+
+
+struct KnowlLink <: AbstractOutputQ
+    txt
+    alt
+end
+
+"""
+    knowlLink
+
+Little inline popup.
+[docs](https://webwork.maa.org/wiki/Knowls)
+"""
+knowlLink(text, tag="click me")  =  KnowlLink(text, tag)
+
+create_answer(r::KnowlLink) = ""
+
+function show_question(r::KnowlLink, args...)
+    txt = replace(r.txt, "\\"=>"\\\\")
+    txt = sprint(io -> show(io, "text/pg",  Markdown.parse(txt)))
+    txt = replace(txt, "\\"=>"\\\\")
+    """
+\\{
+knowlLink("$(r.alt)",
+value=>escapeSolutionHTML(EV3P("$(txt)")), base64=>1);
+\\}
+"""
+end
+                 
+
+##
+## --------------------------------------------------
+##
+
+

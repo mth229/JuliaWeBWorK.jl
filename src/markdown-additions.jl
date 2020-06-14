@@ -98,10 +98,26 @@ end
 
 #  use popup here; why?  why not?
 function Base.show(io::IO, ::MIME"text/pg", md::Markdown.Image)
+    id =  randstring('a':'z',10)
+    url = match(r"^data:image/gif", md.url) == nothing ? md.url : "Image goes here"
     println(io, """
-\\{ htmlLink( "javascript:window.open('$(md.url)');", "$(md.alt)" ) \\}
+
+END_TEXT
+\$id = MODES(
+HTML=>'<figure><img src="$(md.url)"  alt="$(md.alt)"><figcaption>$(md.alt)</figcaption></figure>',
+TeX=>'[$(md.alt)]($url)',
+);
+BEGIN_TEXT
+\$id
 """)
+
 end
+#function Base.show(io::IO, ::MIME"text/pg", md::Markdown.Image)
+#    println(io, """
+#\\{ htmlLink( "javascript:windowpopup('$(md.url)');", '$(md.alt)' ) \\}
+#""")
+#end
+
 
 function Base.show(io::IO, ::MIME"text/pg", md::Markdown.Link)
     buf = IOBuffer()

@@ -9,17 +9,17 @@ module JuliaWeBWorK
 
 using Markdown
 using Mustache
+using Base64
+using Random
 
 export Page
 export radioq, numericq, multinumericq
-export iframe
+export iframe, knowlLink
 export List,  Formula,  Interval 
 
 include("markdown-additions.jl")
 include("answers.jl")
 include("page.jl")
-
-
 
 
 end
