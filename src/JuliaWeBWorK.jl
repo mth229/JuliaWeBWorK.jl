@@ -15,7 +15,7 @@ using Random
 export Page
 export radioq, numericq, multinumericq
 export iframe, knowlLink
-export List,  Formula,  Interval 
+export List,  Formula,  Interval, Plot
 
 include("markdown-additions.jl")
 include("answers.jl")
