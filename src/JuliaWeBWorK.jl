@@ -13,8 +13,8 @@ using Base64
 using Random
 
 export Page
-export radioq, numericq, multinumericq
-export iframe, knowlLink
+export randomizer, radioq, numericq, multinumericq
+export iframe, hint
 export List,  Formula,  Interval, Plot
 
 include("markdown-additions.jl")

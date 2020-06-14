@@ -46,6 +46,7 @@ end
 
 
 
+
 """
    AbstractQ
 
@@ -75,6 +76,42 @@ function show_answer(r::AbstractQ, i=1)
 end
 
 show_solution(r::AbstractQ) = ""
+
+
+## --------------------------------------------------
+struct Randomizer
+    id
+    vars
+    M
+end
+Base.length(r::Randomizer) = r.M
+
+"""
+    randomizer(vars...)
+
+Share randomization...
+"""
+function randomizer(args...; id=nothing)
+    _id = id == nothing ? string(hash(args)) : id
+    M = length(Base.Iterators.product(args...))
+
+    Randomizer(id, args, M)
+end
+
+randomizer(r::Randomizer) = r
+
+function create_answer(r::Randomizer)
+    id, M = r.id, r.M
+    """
+\$M$(id) = random(0,$M-1, 1);
+"""
+end
+show_question(r::Randomizer) =  ""
+show_answer(r::Randomizer) =  ""
+
+Base.iterate(r::Randomizer) = Base.iterate(Base.Iterators.product(r.vars...))
+Base.iterate(r::Randomizer, s) = Base.iterate(Base.Iterators.product(r.vars...),s)
+
 
 ## ---------------------------
 
@@ -307,7 +344,7 @@ q = numericq("![A Plot](\$(Plot(p))) This is a plot  of ``sin`` over what interv
 function numericq(
     question,
     fn,
-    vars=(); # tuple  
+    vars=(); # tuple ##  Randomizer
     solution="",
     tolerance=1e-4,
     ordered=false # for the List type
@@ -554,12 +591,12 @@ struct KnowlLink <: AbstractOutputQ
 end
 
 """
-    knowlLink
+    hint(text, tag="hint...")
 
 Little inline popup.
 [docs](https://webwork.maa.org/wiki/Knowls)
 """
-knowlLink(text, tag="click me")  =  KnowlLink(text, tag)
+hint(text, tag="hint...")  =  KnowlLink(text, tag)
 
 create_answer(r::KnowlLink) = ""
 
