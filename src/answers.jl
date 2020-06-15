@@ -82,28 +82,37 @@ show_solution(r::AbstractQ) = ""
 struct Randomizer
     id
     vars
-    M
+    N
 end
-Base.length(r::Randomizer) = r.M
+#  length  is number of iterators; use length(r.vars)  for  length  of  iterables  (M)
+Base.length(r::Randomizer) = r.N
 
 """
     randomizer(vars...)
 
-Share randomization...
+A  means to share the randomization across questions
+
+Example
+
+```
+r = randomizer(1:3)
+q1 =  numericq("What is  ``2-{{:a1}}?``", (a) -> 2-a,  r)
+q2 =  numericq("What is  ``3-{{:a1}}?``", (a) -> 3-a,  r)
+Page("test", (r, q1, q2))
 """
 function randomizer(args...; id=nothing)
     _id = id == nothing ? string(hash(args)) : id
-    M = length(Base.Iterators.product(args...))
+    N = length(args)
 
-    Randomizer(id, args, M)
+    Randomizer(_id, args, N)
 end
 
 randomizer(r::Randomizer) = r
 
 function create_answer(r::Randomizer)
-    id, M = r.id, r.M
+    id, M = r.id, length(r.vars)
     """
-\$M$(id) = random(0,$M-1, 1);
+\$randomizer$(id) = random(0,$M-1, 1);
 """
 end
 show_question(r::Randomizer) =  ""
@@ -364,27 +373,41 @@ question_tpl(r::AbstractNumericQ) =  """
 \\{ ans_rule(60) \\}
 
 """
-
 create_answer_tpl(r::AbstractNumericQ) = """
-\$list{{:id}} = [
+@list{{:id}} = (
     {{{:answers}}}
-];
-\$index{{:id}} = random(0,{{:M}}-1, 1);
+);
+{{:randomizer}}
 {{#:inds}}
-\$a{{.}}aa{{:id}} = \$list{{:id}}->[\$index{{:id}}][{{.}}-1];
+\$a{{.}}aa{{:id}} = \$list{{:id}}[\$randomizer{{:id}}][{{.}}-1];
 {{/:inds}}
 {{#:ainds}}
-\$ans{{.}}aa{{:id}}=List(\$list{{:id}}->[\$index{{:id}}][{{:N}}+{{.}}-1]);
+\$ans{{.}}aa{{:id}}=List(\$list{{:id}}[\$randomizer{{:id}}][{{:N}}+{{.}}-1]);
 {{#:ainds}}
 
-"""
+ """
+
+# create_answer_tpl(r::AbstractNumericQ) = """
+# \$list{{:id}} = [
+#     {{{:answers}}}
+# ];
+# {{:randomizer}}
+# {{#:inds}}
+# \$a{{.}}aa{{:id}} = \$list{{:id}}->[\$randomizer{{:id}}][{{.}}-1];
+# {{/:inds}}
+# {{#:ainds}}
+# \$ans{{.}}aa{{:id}}=List(\$list{{:id}}->[\$randomizer{{:id}}][{{:N}}+{{.}}-1]);
+# {{#:ainds}}
+
+# """
 
 # map iterables,f into a "list" for precomputed  randomized answers
 function make_values(vals, f)
     buf = IOBuffer()
     M = 0
     first = true
-    for xs  in Base.Iterators.product(vals...)
+    _vals =  isa(vals, Randomizer) ? vals : Base.Iterators.product(vals...)
+    for xs  in _vals #
         if first
             first=false
         else
@@ -403,9 +426,19 @@ end
 
 
 function create_answer(r::AbstractNumericQ)
-    N = length(r.vars) 
-    answers, M = make_values( r.vars, (r.fn,))    
-    Mustache.render(create_answer_tpl(r), (id=r.id, answers=answers, inds=1:N, ainds=1:1, N=N, M=M))
+    N = length(r.vars)
+    answers, M = make_values( r.vars, (r.fn,))
+
+
+    if (r.vars isa Randomizer)
+        randomizer= "\$randomizer$(r.id) = \$randomizer$(r.id);"
+    else
+        randomizer =  "\$randomizer$(r.id) = random(0,$M-1, 1);"
+    end
+
+    
+    Mustache.render(create_answer_tpl(r), (id=r.id, answers=answers, randomizer=randomizer,
+                                           inds=1:N, ainds=1:1, N=N, M=M))
 end
 
 
@@ -448,7 +481,79 @@ create_answer(r::FixedNumericQ) = """
 ##--------------------------------------------------
 ##
 
+struct PlotQ <: AbstractNumericQ
+    id
+    vars
+    fn
+    question
+end
 
+
+##  randomized plot
+## fn should return Plot() call
+function plotq(caption, fn, vars)
+    length(vars) == 0 && throw(ArgumentError("Use ![]() syntax"))
+    id = string(hash((caption,   fn, vars)))
+    PlotQ(id, vars, fn, caption)
+end
+
+# No enclosing List
+create_answer_tpl(r::PlotQ) = """
+@list{{:id}} = (
+    {{{:answers}}}
+);
+{{:randomizer}}
+{{#:inds}}
+\$a{{.}}aa{{:id}} = \$list{{:id}}[\$randomizer{{:id}}][{{.}}-1];
+{{/:inds}}
+{{#:ainds}}
+\$ans{{.}}aa{{:id}}=\$list{{:id}}[\$randomizer{{:id}}][{{:N}}+{{.}}-1];
+{{#:ainds}}
+
+ """
+
+
+#question_tpl(r::PlotQ) = """
+#<figure><img src="{{{:answer}}}"  alt="image"><figcaption>{{{:question}}}</figcaption></figure>
+#"""
+
+function show_question(r::PlotQ)
+    """
+END_TEXT
+\$image$(r.id) = MODES(
+HTML=>qq(<figure><img src=\${ans1aa$(r.id)}><figcaption>$(r.question)</figcaption></figure>),
+TeX=>qq([$(r.question)](image))
+);
+BEGIN_TEXT
+\$image$(r.id)
+"""
+end
+
+#     buf = IOBuffer()
+#     println(buf,"""
+# END_TEXT
+# \$id = MODES(
+# """)
+#     print(buf, """HTML=>qq(<figure><img src="\${ans1aa""")
+#     print(buf, r.id)
+#     print(buf, """}"></figure>),""")
+#     println(buf, "")
+#     println(buf,"""
+# TeX=>'insert tex here'
+# );
+# BEGIN_TEXT
+# \$id
+# """)
+            
+#     out = String(take!(buf))
+#     out
+# end
+    
+#question_tpl(r::PlotQ) = """
+#<figure><img src="{{{:answer}}}"  alt="image"><figcaption>{{{:question}}}</figcaption></figure>
+#"""
+
+show_answer(r::PlotQ) = ""
 
 ##
 ## --------------------------------------------------
@@ -465,6 +570,10 @@ end
 
 """
     multinumericq(questions, answer_fns, vars, solutions; tolerances=(1e-2)*zeros(length(questions)))
+
+
+DON'T USE: use  randomizer instead....
+
 
 Used to share randomized parameters over several questions.
 

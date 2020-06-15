@@ -42,6 +42,8 @@ q1 = numericq(q1_question, q1_answer, ())
 
 ## --------------------------------------------------
 
+q2r = randomizer(20:25)
+
 q2a_question = raw"""
 
 ### Problem 2
@@ -87,11 +89,13 @@ function q2c_answer(μ)
     (x̄ -μ)/t
 end
 
-q2  = multinumericq((q2a_question, q2b_question, q2c_question),
-                    (q2a_answer, q2b_answer, q2c_answer),
-                    (20:25,))
+
+q2a =  numericq(q2a_question, q2a_answer, q2r)
+q2b =  numericq(q2b_question, q2b_answer, q2r)
+q2c =  numericq(q2c_question, q2c_answer, q2r)
+q2 =   (r, q2a, q2b, q2c)
 
 ## --------------------------------------------------
-p  =  Page(intro, (q1,q2); context="Interval",  meta...)
+p  =  Page(intro, (q1,q2...); context="Interval",  meta...)
                 
 
