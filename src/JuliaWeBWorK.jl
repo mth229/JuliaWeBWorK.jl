@@ -13,7 +13,8 @@ using Base64
 using Random
 
 export Page
-export randomizer, radioq, numericq, stringq, plotq
+export randomizer,  numericq, stringq, plotq, essayq
+export radioq, multiplechoiceq
 export iframe, hint
 export List,  Formula,  Interval, Plot
 

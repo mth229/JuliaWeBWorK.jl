@@ -50,11 +50,15 @@ function Base.show(io::IO, p::Page)
     
     println(io, raw"""
 DOCUMENT();
+
 loadMacros("PG.pl","PGbasicmacros.pl","PGanswermacros.pl","PGchoicemacros.pl");
 loadMacros("Parser.pl");
 loadMacros("AnswerFormatHelp.pl");
 loadMacros("PGML.pl");
 loadMacros("parserRadioButtons.pl");
+loadMacros("PGessaymacros.pl");
+loadMacros("PGcourse.pl");
+
 Context()->{format}{number} = "%.16g";
 Context()->variables->add(y => 'Real', z=> 'Real', m=>'Real',n=>'Real');
 Context()->flags->set(ignoreEndpointTypes => 1);
@@ -71,6 +75,7 @@ HEADER_TEXT(<<EOF);
      var opt = "height=625,width=600,location=no,menubar=no," +
               "status=no,resizable=yes,scrollbars=yes," +
               "toolbar=no,";
+
     window.open(url,'newwindow',opt).focus();
   }
   // -->
