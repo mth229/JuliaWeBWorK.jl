@@ -580,29 +580,93 @@ ANS( essay_cmp() );
 struct RadioQ <: AbstractChoiceQ
     id
     question
-    solution
-    random
+    answer
+    choices
     fixed
-    randomize
-    ans
+    solution
+
 end
 
-function radioq(question,
-                ans,
-                random,
-                fixed=""; ## use  [] for none
-                solution="",
-                randomize=true
-                )
-    id = string(hash((question,  solution, random,  fixed)))
-    RadioQ(id, question, solution, random,  fixed,  randomize, ans)
-end
-
-
-create_answer_tpl(r::RadioQ) = """
-\$answer{{:id}} = RadioButtons(
-{{{:answers}}}, {{{:answer}}}); 
 """
+    radioq(question, choices,  answer, [solution])
+
+* choices. Pass as a single iterable for  all randomized choices (e.g., `("one","two","three")`); or as a tuple with a lead iterable,  in which case the second element(s) will appear at the end of the list (e.g., `(("one","two","three"),"four")` or
+   `(("one","two","three"),("four","five"))`
+* answer. The index, within  the flattened choices, of  the answer  (1-based)
+
+Examples
+
+```
+radioq("Pick three", ("one", "two","three"), 3)               # all randomize
+radioq("Pick third", (("one", "two"),"three"),  3)            # "three" at end 
+radioq("Pick third", (("one","two"),  ("three",  "four")), 3)  # "three", "four" at end
+```
+
+!!! note
+    Do to a quirk of parsing, the  answer as a value (not an index) should *not* be a number.
+"""
+function radioq(question,
+                choices,
+                answer::Int,
+                solution=""
+                )
+    id = string(hash((question,  choices, answer, solution)))
+
+    if  _isiterable(choices[1]) # check for first element being iterable
+        if _isiterable(choices[2])
+            full = vcat(choices[1]...,  choices[2]...)
+            fixed = choices[2]
+        else
+            full = vcat(choices[1]...,  choices[2])
+            fixed = (choices[2],)
+        end
+        n = length(choices[1])
+    else
+        full = choices
+        fixed = ()
+        n = length(choices)
+    end
+
+    ans = full[answer]
+    
+    
+
+    RadioQ(id, question, ans, full, fixed, solution)
+end
+
+function create_answer(r::RadioQ)
+    buf = IOBuffer()
+    id = "\$radiobutton$(r.id)"
+    
+    fmt  =  s-> escape_string(s)[6:end]
+    
+    println(buf, "$id = RadioButtons(")
+    println(buf, "[")
+    #qs = [""" "$(escape_string(q)[6:end])" """ for q in r.choices]
+    qs = fmt.(r.choices)
+    println(buf, join(qs, ", " ))
+    println(buf,"],")
+    
+    answer = fmt(r.answer) #""" "$(escape_string(r.answer)[6:end])" """
+    println(buf, answer)
+    println(buf,  ",")
+
+    if !isempty(r.fixed)
+        println(buf, "last => [")
+        #qs = [""" "$(escape_string(q)[6:end])" """ for q in r.fixed]
+        qs = fmt.(r.fixed)
+        println(buf, join(qs, ", " ))
+        println(buf,"],")
+    end
+    println(buf,");")
+
+    String(take!(buf))
+end
+
+# create_answer_tpl(r::RadioQ) = """
+# \$answer{{:id}} = RadioButtons(
+# {{{:answers}}}, {{{:answer}}}); 
+# """
 
 question_tpl(r::RadioQ,i=1) = """
 
@@ -610,37 +674,38 @@ question_tpl(r::RadioQ,i=1) = """
 
 \$PAR
 
-\\{ \$answer{{:id}}->buttons() \\}
+\\{ \$radiobutton{{:id}}->buttons() \\}
 
 """
 
 answer_tpl(r::RadioQ) = """
-ANS( \$answer$(r.id)->cmp() );
+ANS( \$radiobutton$(r.id)->cmp() );
 """
 
-function create_answer(r::RadioQ)
-    isempty(r.random) && is.empty(r.fixed)  && throw(ArgumentError("need some choice"))
+# function create_answer(r::RadioQ)
+#     isempty(r.random) && is.empty(r.fixed)  && throw(ArgumentError("need some choice"))
 
-    rands =  join(["\"" *  replace.(string(x), "\"" => "“") *  "\""  for x  in  r.random], ", ")
-    if r.randomize
-        rands  =   "[" *  rands *  "]"
-    end
+#     rands =  join(["\"" *  replace.(string(x), "\"" => "“") *  "\""  for x  in  r.random], ", ")
+#     if r.randomize
+#         rands  =   "[" *  rands *  "]"
+#     end
         
-    fixs = "\"" *  replace(string(r.fixed), "\"" => "“")  * "\""
+#     fixs = "\"" *  replace(string(r.fixed), "\"" => "“")  * "\""
     
 
-    if  isempty(rands)
-        answers  = fixs
-    elseif isempty(r.fixed)
-        answers  =  rands
-    else
-        answers  =  "[" *  rands * ", " * fixs *  "]"
-    end
+#     if  isempty(rands)
+#         answers  = fixs
+#     elseif isempty(r.fixed)
+#         answers  =  rands
+#     else
+#         answers  =  "[" *  rands * ", " * fixs *  "]"
+#     end
 
-    answer = r.ans -  1 # 0-based
+#     answer = r.ans -  1 # 0-based
 
-    Mustache.render(create_answer_tpl(r), (id=r.id, answers=answers, answer=answer))
-end
+#     Mustache.render(create_answer_tpl(r), (id=r.id, answers=answers, answer=answer))
+# end
+
 
 
 ##
@@ -700,7 +765,6 @@ _eltype(x) = eltype(x)
 _eltype(x::String) = String
 _isiterable(i) = _eltype(i) != typeof(i)
 
-##  XXX
 function create_answer(r::MultiChoiceQ)
     buf = IOBuffer()
     id = "\$mc$(r.id)"
