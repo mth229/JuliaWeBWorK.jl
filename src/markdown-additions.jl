@@ -17,6 +17,46 @@ As such, only *most* markdown features are available. Here are some differences:
 * Parsing `\`\` 5*6*7 \`\`` will be fine, it is read as LaTeX by Markdown, but `\\( 5*6*7 \\)` will be a problem, as
   `*6*` will be parsed as italicized. Work around this with `⋅` (`\\cdot[tab]`), say.
 
+Example
+
+```
+q = raw\"\"\"
+
+Plain, **bold**, *italics*, ``literal``
+
+----
+
+* itemized
+* lists
+
+----
+
+‵‵‵
+code
+blocks 
+(use triple back ticks)
+‵‵‵
+
+----
+
+[link](https://webwork.maa.org/)
+
+![image](https://avatars0.githubusercontent.com/u/1289488?s=280&v=4)
+
+----
+
+inline math: \\( x = \\sin(z)^2 \\)
+
+Display math
+\\[
+y = \\frac{\\sin(x) - x + \\frac{x^3}{6}}{x^3}
+\\]
+\"\"\"
+Page("Example formatting", (label(q),))
+```
+
+
+
 """
 function Base.show(io::IO, M::MIME"text/pg", md::Markdown.MD)
     for m in  md.content
