@@ -58,15 +58,10 @@ function  q2_answer(a₂,a₀,a,b)
 end
 
 q2 = numericq(q2_question,  q2_answer, (2:4, 6:8, 2:4, 5:9), tolerance=5.0)
-
-q3 = numericq("(1,2,3)", () -> List((1,2,3)), ())
-q4 = numericq("2", () -> 2, ())
-q5 = numericq(raw"\(\pi\)", () -> float(pi), ())
-
 ##
 ## --------------------------------------------------
 ##
 
-p  =  Page(intro, (q3,q4, q5); meta...)
+p  =  Page(intro, (q1, q2); meta...)
                 
 

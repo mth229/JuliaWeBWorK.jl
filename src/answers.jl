@@ -25,7 +25,14 @@ julia> escape_str(str, "ID")
 ```
 """
 function  escape_string(str, id="XXXXXXXXXXXXXXXXXX")
-    params = (a1="\\\$a1"*"aa"*id, 
+    params  =  Dict()
+    for i in 1:6
+        k = Symbol("a"*string(i))
+        v = "\\\$a"*string(i)*"aa"*id
+        params[k] = v
+    end
+    
+    Xparams = (a1="\\\$a1"*"aa"*id, 
               a2="\\\$a2"*"aa"*id,
               a3="\\\$a3"*"aa"*id,
               a4="\\\$a4"*"aa"*id,
@@ -63,15 +70,15 @@ abstract type AbstractQ end
 
 create_answer(r::AbstractQ) = throw(ArgumentError("no default method"))
 
-function show_question(r::AbstractQ, i=1)
+function show_question(r::AbstractQ)
     question = escape_string(r.question, r.id)
-    answer = "\\\$ans$(i)aa$(r.id)"
+    answer = "\\\$answer$(r.id)"
     Mustache.render(question_tpl(r), (id=r.id, question=question, answer=answer))
 
 end
 
-function show_answer(r::AbstractQ, i=1)
-    answer = "\$ans$(i)aa$(r.id)"
+function show_answer(r::AbstractQ)
+    answer = "\$answer$(r.id)"
     Mustache.render(answer_tpl(r),  (id=r.id, answer=answer))
 end
 
@@ -148,7 +155,7 @@ end
 
 
 create_answer_tpl(r::RadioQ) = """
-\$ans1aa{{:id}} = RadioButtons(
+\$answer{{:id}} = RadioButtons(
 {{{:answers}}}, {{{:answer}}}); 
 """
 
@@ -158,12 +165,12 @@ question_tpl(r::RadioQ,i=1) = """
 
 \$PAR
 
-\\{ \$ans1aa{{:id}}->buttons() \\}
+\\{ \$answer{{:id}}->buttons() \\}
 
 """
 
 answer_tpl(r::RadioQ) = """
-ANS( \$ans1aa$(r.id)->cmp() );
+ANS( \$answer$(r.id)->cmp() );
 """
 
 function create_answer(r::RadioQ)
@@ -191,12 +198,75 @@ function create_answer(r::RadioQ)
 end
 
 
+##
+##  --------------------------------------------------
+##
+
+MultiChoiceQ <: AbstractQ
+id
+question
+answer
+vals
+random
+fixed
+end
+
+##  Choices is  ((random1,random2,  ...),  fixed) or just (random,random, ...random)
+function multiplechoiceq(question, choices, answer_fn, vals)
+
+    id  =  string(hash(question, choices,  answer_fn, vals))
+    if  isa(choices[1],  AbstractVector) ||  isa(choices[1],  Tuple)
+        random  = choices[1]
+        fixed=   choices[2]
+    else
+        random  = choices
+        fixed  = nothing
+    end
+    
+    MultiChoiceQ(id, question, answer vals, random, fixed)
+end
+
+
+##  XXX
+function create_answer(r::MultiChoiceQ)
+
+    ## Need to  randomize  here
+    
+#     $mc = new_checkbox_multiple_choice();
+# $mc -> qa (
+# "Select all expressions that are equivalent to  
+# \( e^{x^2 + 1/x} \).  There may be more than
+# one correct answer.", 
+# "\( e^{x^2} e^{1/x} \)$BR",
+# "\( e^{x^2} e^{x^{-1}} \)$BR",                
+# "\( e^{ (x^3+1) / x } \)$BR",
+# );
+# $mc -> extra(
+# "\( \displaystyle \frac{ e^{x^2} }{ e^x } \)$BR",
+# "\( e^{x^2} + e^{1/x} \)$BR",
+# );
+# $mc -> makeLast("None of the above");
+end
+
+show_question(r::MultiChoiceQ) = """
+\{ $mc$(r.id) -> print_q() \}
+$BR
+\{ $mc$(r.id) -> print_a() \}
+"""
+end
+
+show_answer(r::MultiChoiceQ) =  """    
+ ANS( checkbox_cmp( $mc$(r.id)->correct_ans() ) );
+"""
+
+
 
 ##
 ## --------------------------------------------------
 ##
 
 ## Numeric answers (random  or  not)
+## XXX This is more general (text box entries?)
 abstract type  AbstractNumericQ <: AbstractQ end
 
 ## Some output style mark up
@@ -299,6 +369,21 @@ struct NumericQ <: AbstractNumericQ
     ordered
 end
 
+"""
+    MathObject(r)
+
+What type of [MathObject](https://webwork.maa.org/wiki/Introduction_to_MathObjects) to create?  Defaults to "List", but "" (`PlotQ`) or "String"  (`StringQ`)  are useful.
+"""
+MathObject(r::AbstractNumericQ) = "List"
+
+
+"""
+    TypePartial
+
+Ability to modify just  part of the `create_answer_tpl` for "AbstractNumericQ" for a  given type. (e.g., `StringQ`)
+"""
+TypePartial(r::AbstractNumericQ) = ""
+
 ## numericq((a1=1:5,a2=[1,2,3]),     # a  tuple of n iterables
 ##          (a1) -> sin(a1),         # an n-ary function giving answer for a combination of values
 ##          "What  is sin({{:a1}})?",# a string. Use {{:ai}}  to  reference random parameters
@@ -377,32 +462,22 @@ create_answer_tpl(r::AbstractNumericQ) = """
 @list{{:id}} = (
     {{{:answers}}}
 );
-{{:randomizer}}
+
+{{>:TypePartial}}
+
+{{{:randomizer}}}
 {{#:inds}}
 \$a{{.}}aa{{:id}} = \$list{{:id}}[\$randomizer{{:id}}][{{.}}-1];
 {{/:inds}}
-{{#:ainds}}
-\$ans{{.}}aa{{:id}}=List(\$list{{:id}}[\$randomizer{{:id}}][{{:N}}+{{.}}-1]);
-{{#:ainds}}
+\$answer{{:id}}= {{:MathObject}}(\$list{{:id}}[\$randomizer{{:id}}][{{:N}}]);
 
- """
+"""
 
-# create_answer_tpl(r::AbstractNumericQ) = """
-# \$list{{:id}} = [
-#     {{{:answers}}}
-# ];
-# {{:randomizer}}
-# {{#:inds}}
-# \$a{{.}}aa{{:id}} = \$list{{:id}}->[\$randomizer{{:id}}][{{.}}-1];
-# {{/:inds}}
-# {{#:ainds}}
-# \$ans{{.}}aa{{:id}}=List(\$list{{:id}}->[\$randomizer{{:id}}][{{:N}}+{{.}}-1]);
-# {{#:ainds}}
-
-# """
-
+## The key to using Julia with randomized questions is to *precompute* the
+## answers for all the possible values. If the event space is modest, this is not
+## an onerous task. Here, we return a vector of arrays, with  strings escaped.
 # map iterables,f into a "list" for precomputed  randomized answers
-function make_values(vals, f)
+function make_values(vals, f; escape=false)
     buf = IOBuffer()
     M = 0
     first = true
@@ -414,10 +489,12 @@ function make_values(vals, f)
             println(buf, ",")
         end
         print(buf, "[" *  join(string.(xs),", "))
-        for fᵢ in f
-            print(buf,  ", ")
-            print(buf, string(fᵢ(xs...)))
+        print(buf,  ", ")
+        val = f(xs...)
+        if isa(val, String)
+            val = "\"" * val *  "\""
         end
+        print(buf, val)
         print(buf,  "]")
         M += 1
     end
@@ -427,9 +504,9 @@ end
 
 function create_answer(r::AbstractNumericQ)
     N = length(r.vars)
-    answers, M = make_values( r.vars, (r.fn,))
+    all_answers, M = make_values( r.vars, r.fn)
 
-
+    # which randomizer do we use, a new one or recycled one?
     if (r.vars isa Randomizer)
         randomizer= "\$randomizer$(r.id) = \$randomizer$(r.id);"
     else
@@ -437,7 +514,8 @@ function create_answer(r::AbstractNumericQ)
     end
 
     
-    Mustache.render(create_answer_tpl(r), (id=r.id, answers=answers, randomizer=randomizer,
+    Mustache.render(create_answer_tpl(r), (id=r.id, answers=all_answers, randomizer=randomizer,
+                                           MathObject=MathObject(r), TypePartial=TypePartial(r),
                                            inds=1:N, ainds=1:1, N=N, M=M))
 end
 
@@ -474,8 +552,74 @@ end
 
 
 create_answer(r::FixedNumericQ) = """
-    \$ans1aa$(r.id) =  List($(r.answer));
+    \$answer$(r.id) =  List($(r.answer));
 """
+
+##
+## --------------------------------------------------
+##
+
+struct StringQ <: AbstractNumericQ
+    id
+    vars
+    fn
+    question
+    solution
+end
+MathObject(r::StringQ) = "String"
+
+"""
+    stringq(question, answer, values)
+
+Answer among limited set of strings. The strings available are all the possible outputs of `answer` (a function) over all possible values.
+
+Examples:
+
+```
+q1 = stringq(raw"Is \\({{:a1}} > 0\\)? (yes/no)", (a) -> ("no","yes")[(a>0) + 1], (-3:3,))
+q2 = stringq("Spell  out {{:a1}}", (a) -> ("one","two","three")[a], (1:3,))    
+```
+"""
+function stringq(question, fn, vars, solution="")
+    length(vars) == 0 && throw(ArgumentError("why?"))
+    id = string(hash((vars, fn, question, solution)))
+    StringQ(id, vars, fn, question, solution)
+end
+
+## Partial for create_answer_tpl
+TypePartial(r::StringQ) = """
+\$N =  scalar @list{{:id}};
+foreach (0 .. (\$N-1)) {
+  Context()->strings->add(qq(\$list{{:id}}[\$_][1])=>{});
+};
+"""
+    
+## Must add Context()->strings->add(A => {}) for  each; o/w this is
+## same as numeric
+# create_answer_tpl(r::StringQ) = """
+# @list{{:id}} = (
+#     {{{:answers}}}
+# );
+
+# \$N =  scalar @list{{:id}};
+# foreach (0 .. (\$N-1)) {
+#   Context()->strings->add(qq(\$list{{:id}}[\$_][1])=>{});
+# };
+
+# {{{:randomizer}}}
+# {{#:inds}}
+# \$a{{.}}aa{{:id}} = \$list{{:id}}[\$randomizer{{:id}}][0];
+# {{/:inds}}
+# \$answer{{:id}}={{:MathObject}}(\$list{{:id}}[\$randomizer{{:id}}][1]);
+
+# """
+
+function answer_tpl(r::StringQ)
+    """
+ANS( {{{:answer}}}->cmp());
+"""
+end
+    
 
 ##
 ##--------------------------------------------------
@@ -487,7 +631,7 @@ struct PlotQ <: AbstractNumericQ
     fn
     question
 end
-
+MathObject(r::PlotQ) = ""
 
 ##  randomized plot
 ## fn should return Plot() call
@@ -497,20 +641,18 @@ function plotq(caption, fn, vars)
     PlotQ(id, vars, fn, caption)
 end
 
-# No enclosing List
-create_answer_tpl(r::PlotQ) = """
-@list{{:id}} = (
-    {{{:answers}}}
-);
-{{:randomizer}}
-{{#:inds}}
-\$a{{.}}aa{{:id}} = \$list{{:id}}[\$randomizer{{:id}}][{{.}}-1];
-{{/:inds}}
-{{#:ainds}}
-\$ans{{.}}aa{{:id}}=\$list{{:id}}[\$randomizer{{:id}}][{{:N}}+{{.}}-1];
-{{#:ainds}}
+# # No enclosing List() here
+# create_answer_tpl(r::PlotQ) = """
+# @list{{:id}} = (
+#     {{{:answers}}}
+# );
+# {{:randomizer}}
+# {{#:inds}}
+# \$a{{.}}aa{{:id}} = \$list{{:id}}[\$randomizer{{:id}}][0];
+# {{/:inds}}
+# \$answer{{:id}}=\$list{{:id}}[\$randomizer{{:id}}][1];
 
- """
+#  """
 
 
 #question_tpl(r::PlotQ) = """
@@ -518,10 +660,11 @@ create_answer_tpl(r::PlotQ) = """
 #"""
 
 function show_question(r::PlotQ)
+    caption  = escape_string(r.question, r.id)
     """
 END_TEXT
 \$image$(r.id) = MODES(
-HTML=>qq(<figure><img src=\${ans1aa$(r.id)}><figcaption>$(r.question)</figcaption></figure>),
+HTML=>qq(<figure><img src=\${answer$(r.id)}><figcaption>$(caption)</figcaption></figure>),
 TeX=>qq([$(r.question)](image))
 );
 BEGIN_TEXT
@@ -555,78 +698,92 @@ end
 
 show_answer(r::PlotQ) = ""
 
-##
-## --------------------------------------------------
-##
-##  Allow for  shaared randomness
-struct MultiNumericQ <: AbstractNumericQ
-    id
-    vars
-    fns
-    questions
-    solutions
-    tolerances
-end
+# ##
+# ## --------------------------------------------------
+# ##
+# ##  Allow for  shared randomness
+# struct MultiNumericQ <: AbstractNumericQ
+#     id
+#     vars
+#     fns
+#     questions
+#     solutions
+#     tolerances
+# end
 
-"""
-    multinumericq(questions, answer_fns, vars, solutions; tolerances=(1e-2)*zeros(length(questions)))
-
-
-DON'T USE: use  randomizer instead....
+# """
+#     multinumericq(questions, answer_fns, vars, solutions; tolerances=(1e-2)*zeros(length(questions)))
 
 
-Used to share randomized parameters over several questions.
-
-Example:
-
-```
-q1 = raw" What is ``{{:a1}} + {{:a2}}`` ?"
-q2 = raw" What is ``{{:a1}} - {{:a2}}`` ?"
-
-a1 = (x,y) -> x+y 
-a2 = (x,y) -> x-y
-
-randomizer = (2:6, 2:6)
-
-multinumericq((q1,q2), (a1,a2), randomizer)
+# DON'T USE: use  randomizer instead....
 
 
-!!! note
-    THIS NEEDS TO BE GENERALIZED. As it it only shares randomness  over numeric questions. We need instead a means  to share  
-    The random M.
+# Used to share randomized parameters over several questions.
 
-```
-"""
-function multinumericq(questions, fns, vars, solutions=""; tolerances=(1e-2)*ones(length(questions)))
+# Example:
 
-    id =  string(hash((questions, fns, vars)))
-    MultiNumericQ(id, vars, fns, questions, solutions, tolerances)
+# ```
+# q1 = raw" What is ``{{:a1}} + {{:a2}}`` ?"
+# q2 = raw" What is ``{{:a1}} - {{:a2}}`` ?"
+
+# a1 = (x,y) -> x+y 
+# a2 = (x,y) -> x-y
+
+# randomizer = (2:6, 2:6)
+
+# multinumericq((q1,q2), (a1,a2), randomizer)
+
+
+# !!! note
+#     THIS NEEDS TO BE GENERALIZED. As it it only shares randomness  over numeric questions. We need instead a means  to share  
+#     The random M.
+
+# ```
+# """
+# function multinumericq(questions, fns, vars, solutions=""; tolerances=(1e-2)*ones(length(questions)))
+
+#     id =  string(hash((questions, fns, vars)))
+#     MultiNumericQ(id, vars, fns, questions, solutions, tolerances)
     
-end
+# end
 
-function create_answer(r::MultiNumericQ)
-    N = length(r.vars) 
-    #answers, M = make_values(Val(N), r.vars, r.fn)
-    answers, M = make_values( r.vars, r.fns)    
-    Mustache.render(create_answer_tpl(r), (id=r.id, answers=answers, inds=1:N,ainds=1:length(r.fns), N=N, M=M))
-end
+# create_answer_tpl(r::MultiNumericQ) = """
+# @list{{:id}} = (
+#     {{{:answers}}}
+# );
+# {{:randomizer}}
+# {{#:inds}}
+# \$a{{.}}aa{{:id}} = \$list{{:id}}[\$randomizer{{:id}}][{{.}}-1];
+# {{/:inds}}
+# {{#:ainds}}
+# \$answer{{.}}{{:id}}=List(\$list{{:id}}[\$randomizer{{:id}}][{{:N}}+{{.}}-1]);
+# {{#:ainds}}
 
-function answer_tpl(r::MultiNumericQ)
-    buf = IOBuffer()
+#  """
 
-    for (i,question) in enumerate(r.questions)
-        println(buf, """ANS( \$ans$(i)aa{{:id}}->cmp(tolerance=>$(r.tolerances[i]), tolType=>"absolute" ));""")
-    end
-    String(take!(buf))
-end
-function show_question(r::MultiNumericQ, args...)
-    buf = IOBuffer()
-    for (i,question) in enumerate(r.questions)
-        question = escape_string(question, r.id)
-        println(buf, Mustache.render(question_tpl(r), (id=r.id, question=question)))
-    end
-    String(take!(buf))
-end
+# function create_answer(r::MultiNumericQ)
+#     N = length(r.vars) 
+#     #answers, M = make_values(Val(N), r.vars, r.fn)
+#     answers, M = make_values( r.vars, r.fns)    
+#     Mustache.render(create_answer_tpl(r), (id=r.id, answers=answers, inds=1:N,ainds=1:length(r.fns), N=N, M=M))
+# end
+
+# function answer_tpl(r::MultiNumericQ)
+#     buf = IOBuffer()
+
+#     for (i,question) in enumerate(r.questions)
+#         println(buf, """ANS( \$answer$(i){{:id}}->cmp(tolerance=>$(r.tolerances[i]), tolType=>"absolute" ));""")
+#     end
+#     String(take!(buf))
+# end
+# function show_question(r::MultiNumericQ, args...)
+#     buf = IOBuffer()
+#     for (i,question) in enumerate(r.questions)
+#         question = escape_string(question, r.id)
+#         println(buf, Mustache.render(question_tpl(r), (id=r.id, question=question)))
+#     end
+#     String(take!(buf))
+# end
 
 
 

@@ -50,7 +50,7 @@ function Base.show(io::IO, p::Page)
     
     println(io, raw"""
 DOCUMENT();
-loadMacros("PG.pl","PGbasicmacros.pl","PGanswermacros.pl");
+loadMacros("PG.pl","PGbasicmacros.pl","PGanswermacros.pl","PGchoicemacros.pl");
 loadMacros("Parser.pl");
 loadMacros("AnswerFormatHelp.pl");
 loadMacros("PGML.pl");

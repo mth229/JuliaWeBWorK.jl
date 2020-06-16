@@ -36,7 +36,7 @@ mean of x
 """
 
 
-q1_answer = () -> List([Interval(7171.667, 8212.949)])
+q1_answer() -> List([Interval(7171.667, 8212.949)])
 
 q1 = numericq(q1_question, q1_answer, ())
 
@@ -65,14 +65,14 @@ mean of x
 (a) What is the observed value of the statistic?
 """
 
-q2a_answer =  (μ) -> -9.0783
+q2a_answer(μ) -> -9.0783
 
 q2b_question  = raw"""
 
 (b) What was the sample  size?
 """
 
-q2b_answer = (μ) -> 9 + 1
+q2b_answer(μ) -> 9 + 1
 
 q2c_question = raw"""
 
@@ -93,7 +93,7 @@ end
 q2a =  numericq(q2a_question, q2a_answer, q2r)
 q2b =  numericq(q2b_question, q2b_answer, q2r)
 q2c =  numericq(q2c_question, q2c_answer, q2r)
-q2 =   (r, q2a, q2b, q2c)
+q2 =   (r, q2a, q2b, q2c, q2d)
 
 ## --------------------------------------------------
 p  =  Page(intro, (q1,q2...); context="Interval",  meta...)
