@@ -602,6 +602,7 @@ radioq("Pick third", (("one", "two"),"three"),  3)            # "three" at end
 radioq("Pick third", (("one","two"),  ("three",  "four")), 3)  # "three", "four" at end
 ```
 
+
 !!! note
     Do to a quirk of parsing, the  answer as a value (not an index) should *not* be a number.
 """
@@ -842,6 +843,33 @@ show_answer(r::MultiChoiceQ) =  """
 ##  --------------------------------------------------
 ##
 
+struct TextQ  <: AbstractOutputQ
+    id
+    question
+end
+
+"""
+    label(text)
+
+Add text area to a  set or questions
+
+Example
+```
+Click  [here](www.google.com)
+```
+"""
+function label(label)
+    id = string(hash(label))
+    TextQ(id, label)
+end
+
+create_answer(r::TextQ) = ""
+
+show_question_tpl(r::TextQ, args...) = """
+{{{:question}}}
+"""
+show_answer(r::TextQ) = ""
+    
 
 struct IFrameQ <: AbstractOutputQ
     id
