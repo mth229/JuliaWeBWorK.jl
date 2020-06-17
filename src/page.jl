@@ -51,17 +51,18 @@ function Base.show(io::IO, p::Page)
     println(io, raw"""
 DOCUMENT();
 
-loadMacros("PG.pl","PGbasicmacros.pl","PGanswermacros.pl","PGchoicemacros.pl");
+loadMacros("PG.pl","PGbasicmacros.pl","PGanswermacros.pl");
 loadMacros("Parser.pl");
 loadMacros("AnswerFormatHelp.pl");
-loadMacros("PGML.pl");
 loadMacros("parserRadioButtons.pl");
+loadMacros("PGchoicemacros.pl");
 loadMacros("PGessaymacros.pl");
-loadMacros("PGcourse.pl");
+##loadMacros("PGML.pl");
+##loadMacros("PGcourse.pl");
 
 Context()->{format}{number} = "%.16g";
-Context()->variables->add(y => 'Real', z=> 'Real', m=>'Real',n=>'Real');
-Context()->flags->set(ignoreEndpointTypes => 1);
+Context()->variables->add(y=>'Real', z=>'Real', m=>'Real', n=>'Real');
+Context()->flags->set(ignoreEndpointTypes=> 1);
 """)
 
     println(io, "TEXT(beginproblem());")
@@ -87,24 +88,30 @@ EOF
     if length(p.context) > 0
         println(io,  "Context(\"$(p.context)\");")
     end
-    
+
+    println(io, "\n## ---------- create answer values ----------\n")
     for q  in p.questions
         print(io, create_answer(q))
         println(io, "")
     end
+
+    println(io, "\n## ---------- show  questions  ----------\n")
     
-    println(io, "BEGIN_TEXT")
+    println(io, "BEGIN_TEXT\n")
+
     intro = replace(p.intro, "\\" => "\\\\")
     show(io, "text/pg", Markdown.parse(intro))
 
-    println(io, "\n\$HR")
+    println(io, "\n\n\$HR\n")
     
     for q in  p.questions
         print(io,  show_question(q))
-        println(io, "\n\$PAR")
+        println(io,"\$PAR\n")
     end
 
     println(io,  "END_TEXT")
+
+    println(io, "\n## ---------- show  answers  ----------\n")
     
     for q in p.questions
         println(io, show_answer(q))

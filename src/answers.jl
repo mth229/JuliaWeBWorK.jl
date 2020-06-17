@@ -50,10 +50,9 @@ end
 
 #  default 
 question_tpl(r::AbstractQ) =  """
-\$PAR
 {{{:question}}}
 \$PAR
-{{{:question_partial}}}
+{{>:question_partial}}
 """
 question_partial(r::AbstractQ) =  ""
 
@@ -64,9 +63,7 @@ function show_answer(r::AbstractQ)
 end
 
 function answer_tpl(r::AbstractQ)
-    """
-ANS( {{{:answer}}}->cmp( {{{:answer_partial}}} ));
-"""
+"ANS( {{{:answer}}}->cmp( {{>:answer_partial}} ));"
 end
     
 answer_partial(r::AbstractQ) = ""
@@ -292,19 +289,19 @@ MathObject(r::AbstractRandomizedQ) = "List"
 
 
 """
-    TypePartial
+    create_answer_partial
 
 Ability to modify just  part of the `create_answer_tpl` for "AbstractRandomizedQ" for a  given type. (e.g., `StringQ`)
 """
-TypePartial(r::AbstractRandomizedQ) = ""
+create_answer_partial(r::AbstractRandomizedQ) = ""
 
 
 create_answer_tpl(r::AbstractRandomizedQ) = """
 @list{{:id}} = (
-    {{{:answers}}}
+{{{:answers}}}
 );
 
-{{>:TypePartial}}
+{{>:create_answer_partial}}
 
 {{{:randomizer}}}
 {{#:inds}}
@@ -358,7 +355,7 @@ function create_answer(r::AbstractRandomizedQ)
 
     
     Mustache.render(create_answer_tpl(r), (id=r.id, answers=all_answers, randomizer=randomizer,
-                                           MathObject=MathObject(r), TypePartial=TypePartial(r),
+                                           MathObject=MathObject(r), create_answer_partial=create_answer_partial(r),
                                            inds=1:N, ainds=1:1, N=N, M=M))
 end
 
@@ -495,9 +492,7 @@ create_answer(r::FixedNumericQ) = """
 
 function  answer_partial(r::Union{NumericQ, FixedNumericQ})
     strict = r.ordered ? ", ordered=>'strict'" :  ""
-"""
-tolerance=>$(r.tolerance), tolType=>"absolute"  $strict 
-"""
+""" tolerance=>$(r.tolerance), tolType=>"absolute"$strict"""
 end
 
 #function answer_tpl(r::Union{NumericQ, FixedNumericQ})
@@ -540,9 +535,10 @@ function stringq(question, fn, vars, solution="")
 end
 
 ## Partial for create_answer_tpl
-TypePartial(r::StringQ) = """
-\$N =  scalar @list{{:id}};
-foreach (0 .. (\$N-1)) {
+## add strings to context
+create_answer_partial(r::StringQ) = """
+\$N{{:id}} =  scalar @list{{:id}};
+foreach (0 .. (\$N{{:id}}-1)) {
   Context()->strings->add(qq(\$list{{:id}}[\$_][1])=>{});
 };
 """
