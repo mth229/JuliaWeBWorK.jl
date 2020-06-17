@@ -143,12 +143,12 @@ function Base.show(io::IO, ::MIME"text/pg", md::Markdown.Image)
     println(io, """
 
 END_TEXT
-\$id = MODES(
+\$$id = MODES(
 HTML=>'<figure><img src="$(md.url)"  alt="$(md.alt)"><figcaption>$(md.alt)</figcaption></figure>',
 TeX=>'[$(md.alt)]($url)',
 );
 BEGIN_TEXT
-\$id
+\$$id
 """)
 
 end

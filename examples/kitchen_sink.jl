@@ -60,8 +60,8 @@ function n36_fn(a)
     plot!(p,zero)
     Plot(p)
 end
-n36p = plotq(raw"Plot of \(f\)", n36_fn, r)
-n36 = numericq(raw"How many zeros does the graph \( f\) show?", (a) -> 1, r)
+n36p = plotq(raw"Plot of \(f \)", n36_fn, r)
+n36 = numericq(raw"How many zeros does the graph ofa \( f\) show?", (a) -> 1, r)
 n37 = stringq("Spell out {{:a1}}", (a) -> ("one", "two", "three")[a], r)
 
 n3s = (r,  n31, n33, n36p, n36,  n37)

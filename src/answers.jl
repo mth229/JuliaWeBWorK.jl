@@ -41,21 +41,35 @@ create_answer(r::AbstractQ) = throw(ArgumentError("no default method"))
 function show_question(r::AbstractQ)
     question = escape_string(r.question, r.id)
     answer = "\\\$answer$(r.id)"
-    Mustache.render(question_tpl(r), (id=r.id, question=question, answer=answer))
+    Mustache.render(question_tpl(r), (id=r.id,
+                                      question=question,question_partial=question_partial(r),
+                                      answer=answer))
 
 end
-#  default  has no input widget
+
+
+#  default 
 question_tpl(r::AbstractQ) =  """
 \$PAR
 {{{:question}}}
 \$PAR
+{{{:question_partial}}}
 """
+question_partial(r::AbstractQ) =  ""
 
 
 function show_answer(r::AbstractQ)
     answer = "\$answer$(r.id)"
-    Mustache.render(answer_tpl(r),  (id=r.id, answer=answer))
+    Mustache.render(answer_tpl(r),  (id=r.id, answer=answer, answer_partial=answer_partial(r)))
 end
+
+function answer_tpl(r::AbstractQ)
+    """
+ANS( {{{:answer}}}->cmp( {{{:answer_partial}}} ));
+"""
+end
+    
+answer_partial(r::AbstractQ) = ""
 
 show_solution(r::AbstractQ) = ""
 
@@ -67,6 +81,10 @@ show_solution(r::AbstractQ) = ""
 ## AbstractRandomizedQ
            
 #  util
+
+# get  quotes when needed
+_show(x) = sprint(io->show(io, x))
+
 
 raw"""
     escape_string(str, id, n=16)
@@ -160,9 +178,6 @@ Base.iterate(r::Randomizer, s) = Base.iterate(Base.Iterators.product(r.vars...),
 
 ## Some output style mark up
 
-# get  quotes when needed
-_show(x) = sprint(io->show(io, x))
-
 
 raw"""
    Formula(ex)
@@ -205,7 +220,7 @@ Example
 using SymPy
 question = raw"What are the elements of  \( {1,2, {{:a1}}  } \)"
 function  answer(a)
-   List((1,2,a))
+   List(1,2,a)
 end
 randomizer = (3:5,)
 numericq(question,  answer, randomizer)
@@ -301,7 +316,7 @@ create_answer_tpl(r::AbstractRandomizedQ) = """
 
 
 ## The key to using Julia with randomized questions is to *precompute* the
-## answers for all the possible values. If the event space is modest, this is not
+## answers for all the possible values. If the sample space is modest, this is not
 ## an onerous task. Here, we return a vector of arrays, with  strings escaped.
 # map iterables,f into a "list" for precomputed  randomized answers
 function make_values(vals, f; escape=false)
@@ -315,7 +330,7 @@ function make_values(vals, f; escape=false)
         else
             println(buf, ",")
         end
-        print(buf, "[" *  join(string.(xs),", "))
+        print(buf, "[" *  join(_show.(xs),", "))
         print(buf,  ", ")
         val = f(xs...)
 
@@ -348,22 +363,25 @@ function create_answer(r::AbstractRandomizedQ)
 end
 
 
-
-question_tpl(r::AbstractRandomizedQ) =  """
-
-{{{:question}}}
-
-\$PAR
-
+question_partial(r::AbstractRandomizedQ) =  """
 \\{ ans_rule(60) \\}
-
 """
 
-function answer_tpl(r::AbstractRandomizedQ)
-    """
-ANS( {{{:answer}}}->cmp( {{{:cmp_options}}} ));
-"""
-end
+
+
+# question_tpl(r::AbstractRandomizedQ) =  """
+
+# {{{:question}}}
+# \$PAR
+# \\{ ans_rule(60) \\}
+
+# """
+
+# function answer_tpl(r::AbstractRandomizedQ)
+#     """
+# ANS( {{{:answer}}}->cmp( {{{:cmp_partial}}} ));
+# """
+# end
 
 
 ##
@@ -391,18 +409,17 @@ end
 """
     numericq(question, ans_fn, [random];  solution,  tolerance=1e-4,  ordered=false)
 
-* question is  typically generated using `raw` and may includ basic markdown and  LaTex wehre `\\( \\)`  and  `\\[  \\]` are
-used for   inline math and display math.
+* question is a string processed through `Markdown` and may include LaTex where `\\( \\)`  and  `\\[  \\]` are
+used for  inline math and display math. The `raw` string macro is useful to avoid  escaping  back slashes. In Markdown, inline  literals need *two* backtics, not *one*, as is standard.
 
-
- References to randomized variables is  through  `{{:a1}}`, `{{:a2}}`, `{{:a3}}`.
+References to randomized variables is  through  `{{:a1}}`, `{{:a2}}`, `{{:a3}}`,….
 
 * The answer function is  an n-ary function of the  randomized parameters
 
 * the  random parameters are specified  by  0,1,2,or 3  iterable objects (e.g. `1:5` or `[1,2,3,5]`) combined in a tuple (grouped
-with parentheses; use  `(itr,)` if only 1 randomized parameter.
+with parentheses; use  `(itr,)` if only 1 randomized parameter. Alternatiively, a  `ranodmizer` object may be passed allowing  shared randomization amongst questions.
 
-* tolerance is  an absolute tolerance.
+* tolerance is  an *absolute* tolerance.
 
 * `ordered` is only for the case where the output is a list and you want an exact order
 
@@ -416,11 +433,11 @@ numericq("What is ``{{:a1}}*{{:a2}}*{{:a3}}``?",  (a,b) -> a+b, (1:5, 1:5,1:5)) 
 numericq("What is \\({{:a1}}⋅{{:a2}}⋅{{:a3}}\\)?",  (a,b) -> a+b, (1:5, 1:5,1:5)) ## note \\cdot, not *, unfortunate parsing o/w
 numericq("Estimate from your graph the \\(x\\)-intercept.", ()-> 2.3, ();  tolerance=0.5)
 numericq("What is \\( \\infty  \\)?",  () ->  Inf, ())
-numericq("What is \\( {1,2,{{:a1}} } \\)?",  (a) -> List((1,2,a)), (3:6), ordered=true)
+numericq("What is \\( {1,2,{{:a1}} } \\)?",  (a) -> List(1,2,a), (3:6), ordered=true)
 numericq("What is the derivative of  \\( \\sin(x) \\)?", () -> (@vars x;  Formula(diff(sin(x),x))),  ())
 ```
 
-Output of `Plots` can be  used in a  question by wrapping figure in  `Plot(p)`.  (This will  not show up  in  a  hard copy.)
+Plots may be randomized too.  See  [`Plot`](@ref), though they will not show in  a hard copy.
 
 ```
 using Plots
@@ -428,6 +445,14 @@ p = plot(sin, 0, 2pi);
 plot!(zero);
 q = numericq("![A Plot](\$(Plot(p))) This is a plot  of ``sin`` over what interval?", ()->Interval(0, 2pi),())
 ```
+
+Or if `r` is a `randomizer`, 
+
+```
+numericq("A plot caption", (a) ->  Plot(plot(sin, 0,  a*2pi)), r)
+```
+
+
 
 !! note "TODO"
    Should consolidate arguments  to  `cmp` (`tolerance`,   `ordered`)
@@ -457,7 +482,7 @@ struct FixedNumericQ  <: AbstractRandomizedQ
 end
 
 function  fixed_numericq(fn, question,  solution="",tolerance=(1e-4), ordered=false)
-
+    
     id = string(hash((question, solution)))
     FixedNumericQ(id, question, solution, fn(),  tolerance,ordered)
 end
@@ -465,15 +490,22 @@ end
 
 
 create_answer(r::FixedNumericQ) = """
-    \$answer$(r.id) =  List($(r.answer));
+\$answer$(r.id) =  List($(r.answer));
 """
 
-function answer_tpl(r::Union{NumericQ, FixedNumericQ})
+function  answer_partial(r::Union{NumericQ, FixedNumericQ})
     strict = r.ordered ? ", ordered=>'strict'" :  ""
-    """
-ANS( {{{:answer}}}->cmp(tolerance=>$(r.tolerance), tolType=>"absolute"  $strict ));
+"""
+tolerance=>$(r.tolerance), tolType=>"absolute"  $strict 
 """
 end
+
+#function answer_tpl(r::Union{NumericQ, FixedNumericQ})
+#    strict = r.ordered ? ", ordered=>'strict'" :  ""
+#    """
+#ANS( {{{:answer}}}->cmp(tolerance=>$(r.tolerance), tolType=>"absolute"  $strict ));
+#"""
+#end
 
 
 ##
@@ -492,7 +524,7 @@ MathObject(r::StringQ) = "String"
 """
     stringq(question, answer, values)
 
-Answer among limited set of strings. The strings available are all the possible outputs of `answer` (a function) over all possible values.
+Answer among limited set of strings. The strings available are all the possible outputs of `answer` (a function) over all possible values  in the sample space.
 
 Examples:
 
@@ -552,46 +584,6 @@ end
 
 show_answer(r::PlotQ) = ""
 
-
-##
-## ------------- Output only widgets ------------------------------
-##
-
-
-show_answer(r::AbstractOutputQ) = ""
-
-
-
-##
-##  --------------------------------------------------
-##
-
-struct EssayQ <: AbstractOutputQ
-    id
-    question
-    width
-    height
-end
-
-"""
-    essayq(question; width=60, height=6)
-
-WeBWorK allows for **one** essay question per page. These will be graded by the instructor.
-"""
-function essayq(question; width=60, height=6)
-    EssayQ("1", question, width, height)
-end
-
-create_answer(r::EssayQ) = ""
-question_tpl(r::EssayQ)  = """
-\$PAR
-{{{:question}}}
-\$PAR
-\\{ essay_box($(r.height),$(r.width)) \\}
-"""
-show_answer(r::EssayQ) = """
-ANS( essay_cmp() );
-"""
 
 ##
 ## ------ Choice questions ---------------------
@@ -657,7 +649,7 @@ end
 
 function create_answer(r::RadioQ)
     buf = IOBuffer()
-    id = "\$radiobutton$(r.id)"
+    id = "\$answer$(r.id)"
     
     fmt  =  s-> escape_string(s)[6:end]
     
@@ -689,19 +681,21 @@ end
 # {{{:answers}}}, {{{:answer}}}); 
 # """
 
-question_tpl(r::RadioQ,i=1) = """
 
-{{{:question}}}
-
-\$PAR
-
-\\{ \$radiobutton{{:id}}->buttons() \\}
-
+question_partial(r::RadioQ) = """
+\\{ \$answer{{:id}}->buttons() \\}
 """
 
-answer_tpl(r::RadioQ) = """
-ANS( \$radiobutton$(r.id)->cmp() );
-"""
+# question_tpl(r::RadioQ,i=1) = """
+# {{{:question}}}
+# \$PAR
+# \\{ \$radiobutton{{:id}}->buttons() \\}
+# """
+
+answer_partial(r::RadioQ) =  ""
+#answer_tpl(r::RadioQ) = """
+#ANS( \$radiobutton$(r.id)->cmp() );
+#"""
 
 # function create_answer(r::RadioQ)
 #     isempty(r.random) && is.empty(r.fixed)  && throw(ArgumentError("need some choice"))
@@ -788,7 +782,7 @@ _isiterable(i) = _eltype(i) != typeof(i)
 
 function create_answer(r::MultiChoiceQ)
     buf = IOBuffer()
-    id = "\$mc$(r.id)"
+    id = "\$answer$(r.id)"
 
     fmt =  x -> """ "$(escape_string(string(x))[6:end]) \$BR" """
     
@@ -840,16 +834,15 @@ end
 # $mc -> makeLast("None of the above");
 
 
-show_question(r::MultiChoiceQ) = """
-$(escape_string(r.question))
-\\{ \$mc$(r.id) -> print_q() \\}
+question_partial(r::MultiChoiceQ) = """
+\\{ \$answer$(r.id) -> print_q() \\}
 \$BR
-\\{ \$mc$(r.id) -> print_a() \\}
+\\{ \$answer$(r.id) -> print_a() \\}
 """
 
 
 show_answer(r::MultiChoiceQ) =  """    
- ANS( checkbox_cmp( \$mc$(r.id)->correct_ans() ) );
+ ANS( checkbox_cmp( \$answer$(r.id)->correct_ans() ) );
 """
 
 
@@ -857,6 +850,55 @@ show_answer(r::MultiChoiceQ) =  """
 ##
 ##  --------------------------------------------------
 ##
+
+##
+## ------------- Output only widgets ------------------------------
+##
+
+
+show_answer(r::AbstractOutputQ) = ""
+
+
+
+##
+##  --------------------------------------------------
+##
+
+struct EssayQ <: AbstractOutputQ
+    id
+    question
+    width
+    height
+end
+
+"""
+    essayq(question; width=60, height=6)
+
+WeBWorK allows for **one** essay question per page. These will be graded by the instructor.
+"""
+function essayq(question; width=60, height=6)
+    EssayQ("1", question, width, height)
+end
+
+create_answer(r::EssayQ) = ""
+question_partial(r::EssayQ) = """
+\\{ essay_box($(r.height),$(r.width)) \\}
+"""
+
+# question_tpl(r::EssayQ)  = """
+# \$PAR
+# {{{:question}}}
+# \$PAR
+# \\{ essay_box($(r.height),$(r.width)) \\}
+# """
+show_answer(r::EssayQ) = """
+ANS( essay_cmp() );
+"""
+
+## Output  widget
+
+
+## --------------------------------------------------
 
 struct TextQ  <: AbstractOutputQ
     id
@@ -880,10 +922,10 @@ end
 
 create_answer(r::TextQ) = ""
 
-show_question_tpl(r::TextQ, args...) = """
-{{{:question}}}
-"""
-show_answer(r::TextQ) = ""
+# show_question_tpl(r::TextQ, args...) = """
+# {{{:question}}}
+# """
+#show_answer(r::TextQ) = ""
     
 
 struct IFrameQ <: AbstractOutputQ
@@ -933,7 +975,7 @@ function show_question(r::IFrameQ, args...)
 """
 end
 
-show_answer(r::IFrameQ) = ""
+#show_answer(r::IFrameQ) = ""
 
 
 ##
