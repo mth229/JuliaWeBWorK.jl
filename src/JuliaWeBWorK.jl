@@ -7,7 +7,8 @@ module JuliaWeBWorK
 ## https://webwork.maa.org/wiki/Display_Macros
 
 
-using Markdown
+#using Markdown
+using CommonMark
 using Mustache
 using Base64
 using Random
@@ -18,7 +19,8 @@ export radioq, multiplechoiceq
 export iframe, label,  hint
 export List,  Formula,  Interval, Plot
 
-include("markdown-additions.jl")
+#include("markdown-additions.jl")
+include("commonmark-additions.jl")
 include("answers.jl")
 include("page.jl")
 

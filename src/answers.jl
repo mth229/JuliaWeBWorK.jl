@@ -81,6 +81,12 @@ show_solution(r::AbstractQ) = ""
 
 # get  quotes when needed
 _show(x) = sprint(io->show(io, x))
+const parser = CommonMark.Parser()
+
+
+
+
+
 
 
 raw"""
@@ -100,19 +106,37 @@ julia> escape_str(str, "ID")
 "\$PAR\n\$BITALIC x \$EITALIC = \\(\\verb~\$a1aaID~\\)"
 ```
 """
-function  escape_string(str, id="XXXXXXXXXXXXXXXXXX", n=16)
+function escape_string(str, id="XXXX",  n=16)
     params  =  Dict()
     for i in 1:n
         k = Symbol("a"*string(i))
         v = "\\\$a"*string(i)*"aa"*id*" "
         params[k] = v
     end
-
-    str = replace(str, "\\" => "\\\\")
+    
     str = Mustache.render(str, params)
-    sprint(io->show(io, "text/pg", Markdown.parse(str)))
+    str = replace(str, raw"\(" => "\\\\(")
+    str = replace(str, raw"\)" => "\\\\)")
+    str = replace(str, raw"\[" => "\\\\[")
+    str = replace(str, raw"\]" => "\\\\]")
+    str = replace(str, "\\\$a" => raw"$a")
+    sprint(io->show(io, "text/pg", parser(str)))
     
 end
+
+# function  escape_string(str, id="XXXXXXXXXXXXXXXXXX", n=16)
+#     params  =  Dict()
+#     for i in 1:n
+#         k = Symbol("a"*string(i))
+#         v = "\\\$a"*string(i)*"aa"*id*" "
+#         params[k] = v
+#     end
+
+#     str = replace(str, "\\" => "\\\\")
+#     str = Mustache.render(str, params)
+#     sprint(io->show(io, "text/pg", Markdown.parse(str)))
+    
+# end
 
 
 ##
@@ -329,7 +353,7 @@ function make_values(vals, f; escape=false)
         end
         print(buf, "[" *  join(_show.(xs),", "))
         print(buf,  ", ")
-        val = f(xs...)
+        val = Base.invokelatest(f,xs...)
 
         if isa(val, String)
             val = "\"" * val *  "\""
@@ -605,9 +629,16 @@ end
 Examples
 
 ```
-radioq("Pick three", ("one", "two","three"), 3)               # all randomize
+radioq("Pick \"three\"", ("one", "two","three"), 3)               # all randomize
 radioq("Pick third", (("one", "two"),"three"),  3)            # "three" at end 
 radioq("Pick third", (("one","two"),  ("three",  "four")), 3)  # "three", "four" at end
+```
+
+To specify that all are  ordered is awkward, specify  the  first and the rest  as in:
+
+```
+choices  =  ("one", "two","three")
+radioq("Pick \"three\"", (choices[1:1],  choices[2:end]))
 ```
 
 
@@ -647,23 +678,26 @@ function create_answer(r::RadioQ)
     buf = IOBuffer()
     id = "\$answer$(r.id)"
     
-    fmt  =  s-> escape_string(s)[6:end]
+#    fmt  =  s-> escape_string(s)[6:end]
+    fmt =  x -> """ "$(escape_string(string(x))[1:end-6])" """
     
     println(buf, "$id = RadioButtons(")
     println(buf, "[")
     #qs = [""" "$(escape_string(q)[6:end])" """ for q in r.choices]
-    qs = _show.(fmt.(r.choices))
+    #qs = _show.(fmt.(r.choices))
+    qs = fmt.(r.choices)
     println(buf, join(qs, ", " ))
     println(buf,"],")
     
-    answer = _show(fmt(r.answer)) #""" "$(escape_string(r.answer)[6:end])" """
+    answer = fmt(r.answer) #""" "$(escape_string(r.answer)[6:end])" """
     println(buf, answer)
     println(buf,  ",")
 
     if !isempty(r.fixed)
         println(buf, "last => [")
         #qs = [""" "$(escape_string(q)[6:end])" """ for q in r.fixed]
-        qs = _show.(fmt.(r.fixed))
+        #qs = _show.(fmt.(r.fixed))
+        qs = fmt.(r.fixed)        
         println(buf, join(qs, ", " ))
         println(buf,"],")
     end
@@ -780,7 +814,7 @@ function create_answer(r::MultiChoiceQ)
     buf = IOBuffer()
     id = "\$answer$(r.id)"
 
-    fmt =  x -> """ "$(escape_string(string(x))[6:end]) \$BR" """
+    fmt =  x -> """ "$(escape_string(string(x))[1:end-6])" """
     
     println(buf, "$id = new_checkbox_multiple_choice();")
 
@@ -996,7 +1030,7 @@ create_answer(r::KnowlLink) = ""
 
 function show_question(r::KnowlLink, args...)
     txt = replace(r.txt, "\\"=>"\\\\")
-    txt = sprint(io -> show(io, "text/pg",  Markdown.parse(txt)))
+    txt = sprint(io -> show(io, "text/pg",  parser(txt))) #Markdown.parse(txt)))
     txt = replace(txt, "\\"=>"\\\\")
     """
 \\{

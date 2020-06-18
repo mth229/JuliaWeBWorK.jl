@@ -52,6 +52,8 @@ function Base.show(io::IO, p::Page)
 DOCUMENT();
 
 loadMacros("PG.pl","PGbasicmacros.pl","PGanswermacros.pl");
+loadMacros("PGstandard.pl");
+loadMacros("MathObjects.pl");
 loadMacros("Parser.pl");
 loadMacros("AnswerFormatHelp.pl");
 loadMacros("parserRadioButtons.pl");
@@ -83,6 +85,18 @@ HEADER_TEXT(<<EOF);
   </script>
 EOF
 """)
+    ## add in somee missing styles
+    println(io,"""
+\$BBLOCKQUOTE =  MODES(
+HTML=>"<BlockQuote>",
+TeX =>""
+);
+
+\$EBLOCKQUOTE  = MODES(
+HTML=>"</BlockQuote>",
+TeX=>""
+);
+""")
 
 
     if length(p.context) > 0
@@ -100,9 +114,10 @@ EOF
     println(io, "BEGIN_TEXT\n")
 
     intro = replace(p.intro, "\\" => "\\\\")
-    show(io, "text/pg", Markdown.parse(intro))
+    print(io, escape_string(intro))
+    ## show(io, "text/pg", Markdown.parse(intro))
 
-    println(io, "\n\n\$HR\n")
+    println(io, "\n\n\$HR\$PAR\n")
     
     for q in  p.questions
         print(io,  show_question(q))
@@ -118,16 +133,18 @@ EOF
         println(io,"")
     end
 
-#    println(io, "#***************************************** Solution: ")
-#    println(io, "Context()->texStrings;")
-#    println(io, "BEGIN_PGML_SOLUTION")
+   # println(io, "#***************************************** Solution: ")
+   # println(io, "Context()->texStrings;")
+   # println(io, "BEGIN_SOLUTION")
 
-#    for q in  p.questions
-#        print(io,  show_solution(q))
-#    end
+   #  println(io, "hi")
+   # for q in  p.questions
+   #     print(io,  show_solution(q))
+   # end
 
-#    println(io, "END_PGML_SOLUTION")
-    println(io, "ENDDOCUMENT();")
+   # println(io, "END_SOLUTION")
+
+   println(io, "ENDDOCUMENT();")
 
 end
 
