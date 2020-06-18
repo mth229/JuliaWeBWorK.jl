@@ -652,6 +652,12 @@ function radioq(question,
                 )
     id = string(hash((question,  choices, answer, solution)))
 
+    # check if all fixed ((values...))
+    if _isiterable(choices[1])  && length(choices) ==  1
+        choices =  [choices[1:1],  choices[2:end]]
+    end
+    
+    
     if  _isiterable(choices[1]) # check for first element being iterable
         if _isiterable(choices[2])
             full = vcat(choices[1]...,  choices[2]...)
@@ -786,6 +792,11 @@ function multiplechoiceq(question, choices, answer; instruction="Select one or m
 
     id  =  string(hash((question, choices,  answer)))
 
+    # check if all fixed ((values...))
+    if _isiterable(choices[1])  && length(choices) ==  1
+        choices =  [choices[1:1],  choices[2:end]]
+    end
+    
     if  _isiterable(choices[1]) # check for first element being iterable
         if _isiterable(choices[2])
             full = vcat(choices[1]...,  choices[2]...)
@@ -807,7 +818,7 @@ function multiplechoiceq(question, choices, answer; instruction="Select one or m
 end
 # helper to identify setup
 _eltype(x) = eltype(x)
-_eltype(x::String) = String
+_eltype(x::P)  where  {P <: AbstractString} =  P
 _isiterable(i) = _eltype(i) != typeof(i)
 
 function create_answer(r::MultiChoiceQ)

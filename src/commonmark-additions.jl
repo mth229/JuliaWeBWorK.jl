@@ -51,10 +51,9 @@ write_pg(::CommonMark.HtmlInline, w, node, ent) = CommonMark.literal(w, node.lit
 
 function write_pg(link::CommonMark.Link, w, node, ent)
     if ent
-        CommonMark.literal(w, """
-\\{ htmlLink( "javascript:windowpopup('$(link.destination)');", '$(link.title)' ) \\}
-""")
+        CommonMark.literal(w, """\\{ htmlLink( "javascript:windowpopup('$(link.destination)')",'""")
     else
+        CommonMark.literal(w, """$(link.title)' ); \\}""")
         CommonMark.cr(w)
     end
 end
