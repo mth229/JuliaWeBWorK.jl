@@ -83,6 +83,12 @@ show_solution(r::AbstractQ) = ""
 _show(x) = sprint(io->show(io, x))
 const parser = CommonMark.Parser()
 
+## L"", q"" macros to  wrap string  in latex (\(,\))  or quote(``).
+lstring(s)   =  (occursin("\\(", s) || occursin("\\[",s)) ? String(s) :  string(raw"\(", s, raw"\)")
+macro L_str(s, flags...)  lstring(s) end
+macro L_mstr(s, flags...) lstring(s) end
+macro q_str(x)  "`$x`" end
+
 
 
 
@@ -563,7 +569,10 @@ end
 create_answer_partial(r::StringQ) = """
 \$N{{:id}} =  scalar @list{{:id}};
 foreach (0 .. (\$N{{:id}}-1)) {
-  Context()->strings->add(qq(\$list{{:id}}[\$_][1])=>{});
+  \$value = \$list{{:id}}[\$_][{{:N}}];
+  if (! \$seen{\$value}++ ) { 
+    Context()->strings->add(qq(\$value)=>{});
+  };
 };
 """
     
@@ -634,11 +643,11 @@ radioq("Pick third", (("one", "two"),"three"),  3)            # "three" at end
 radioq("Pick third", (("one","two"),  ("three",  "four")), 3)  # "three", "four" at end
 ```
 
-To specify that all are  ordered is awkward, specify  the  first and the rest  as in:
+To specify that all are  ordered specify an iterable of length 1 containing an iterable:
 
 ```
 choices  =  ("one", "two","three")
-radioq("Pick \"three\"", (choices[1:1],  choices[2:end]))
+radioq("Pick \"three\"", [choices], 3)
 ```
 
 
@@ -654,7 +663,7 @@ function radioq(question,
 
     # check if all fixed ((values...))
     if _isiterable(choices[1])  && length(choices) ==  1
-        choices =  [choices[1:1],  choices[2:end]]
+        choices =  [choices[1][1:1],  choices[1][2:end]]
     end
     
     
@@ -777,7 +786,7 @@ end
 """
      multiplechoiceq(question, choices, answer; [instruction])
 
-* `choices` can have all randomized  choices (e.g. `("one","two","three")`); a single fixed non-randomized  choice (e.g., (`("one","two","three"), "four")`), or a list of non-randomized choices: (`("one","two","three"), ("four","five"))`). Tuples, vectors, or other iterables  can be used.
+* `choices` can have all randomized  choices (e.g. `("one","two","three")`); a single fixed non-randomized  choice (e.g., (`("one","two","three"), "four")`), or a list of non-randomized choices: (`("one","two","three"), ("four","five"))`). Tuples, vectors, or other iterables  can be used. For  a  fixed  order use a  single  iterable of choices: `[["one","two","three"]]`.
 
 * `answer`: a tuple or vector  of indices of the  correct answers. The  indices refer  to the components stacked in random then fixed order.
 
@@ -794,7 +803,7 @@ function multiplechoiceq(question, choices, answer; instruction="Select one or m
 
     # check if all fixed ((values...))
     if _isiterable(choices[1])  && length(choices) ==  1
-        choices =  [choices[1:1],  choices[2:end]]
+        choices =  [choices[1][1:1],  choices[1][2:end]]
     end
     
     if  _isiterable(choices[1]) # check for first element being iterable
