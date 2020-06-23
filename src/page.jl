@@ -115,6 +115,8 @@ TeX=>""
     
     println(io, "BEGIN_TEXT\n")
 
+    println(io, get(ENV, "BRANDING",  ""))
+    
     intro = replace(p.intro, "\\" => "\\\\")
     print(io, escape_string(intro))
     ## show(io, "text/pg", Markdown.parse(intro))

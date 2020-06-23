@@ -92,6 +92,8 @@ q3 =  numericq(q3_question,   q3_answer, ())
 
 ## --------------------------------------------------
 
+r  = randomizer(8:15)
+
 q4a_question  = raw"""
 # Problem 2
 Let \[
@@ -171,14 +173,15 @@ function  q4d_answer(a)
 end
 
 
-q4 =  multinumericq((q4a_question,  q4b_question, q4c_question, q4d_question),
-                           (q4a_answer,  q4b_answer, q4c_answer, q4d_answer),
-                           (8:15,))
+q4a = numericq(q4a_question, q4a_answer, r)
+q4b = numericq(q4b_question, q4b_answer, r)
+q4c = numericq(q4c_question, q4c_answer, r)
+q4d = numericq(q4d_question, q4d_answer, r)
                            
                            
 ##
 ## --------------------------------------------------
 ##
-p  =  Page(intro, (q1,q2, q3, q4); context="Interval", meta...)  #  Interval here  is needed
+p  =  Page(intro, (q1,q2, q3, q4a, q4b, q4c, q4d); context="Interval", meta...)  #  Interval here  is needed
                 
 
