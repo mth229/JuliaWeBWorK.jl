@@ -89,6 +89,13 @@ macro L_str(s, flags...)  lstring(s) end
 macro L_mstr(s, flags...) lstring(s) end
 macro q_str(x)  "`$x`" end
 
+function  useinfinity(a::T) where {T<:Number}
+    if isinf(a)
+        a = (a==Inf)  ?  "infinity" : "-infinity"
+    end
+    a
+end
+useinfinity(a) = a
 
 
 
@@ -255,9 +262,9 @@ numericq(question,  answer, randomizer)
 """
 struct List
     x
-    List(ex::Tuple) = new(ex)
     List(v::Vector) = new(tuple(v...))
-    List(args...) = new(args)
+    List(args...) = List(args)
+    List(ex::Tuple) = new(useinfinity.(ex))
 end
 Base.show(io::IO, l::List) = print(io, "List("  * join(_show.(l.x),  ", ") *  ")")
 
@@ -277,7 +284,11 @@ numericq(question, answer, ())
 struct Interval
     a
     b
-    Interval(a,b) = a < b ? new(a,b) : new(b,a)
+    function  Interval(a,b)
+        a, b= a < b ? (a,b) :  (b,a)
+        a, b= useinfinity.((a,b))
+        new(a,b)
+    end
 end
 Base.show(io::IO, I::Interval) = print(io, "Interval($(I.a), $(I.b))")
 
@@ -362,10 +373,12 @@ function make_values(vals, f; escape=false)
         print(buf, "[" *  join(_show.(xs),", "))
         print(buf,  ", ")
         val = Base.invokelatest(f,xs...)
+        val = useinfinity(val)
 
         if isa(val, String)
-            val = "\"" * val *  "\""
+            val = sprint(io->show(io, "text/plain",  val))
         end
+        
         print(buf, val)
         print(buf,  "]")
         M += 1
