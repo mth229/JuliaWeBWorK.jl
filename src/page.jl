@@ -67,6 +67,8 @@ Context()->variables->add(y=>'Real', z=>'Real', m=>'Real', n=>'Real');
 Context()->flags->set(ignoreEndpointTypes=> 1);
 
 my %seen;  # hat tip to https://perlmaven.com/unique-values-in-an-array-in-perl;  filter Context->strings->add
+$seen{"yes"} = 1; $seen{"no"}=1;$seen{"true"} = 1; $seen{"false"}=1;
+Context()->strings->add(qq(yes)=>{},qq(no)=>{},qq(true)=>{},qq(false)=>{});
 """)
 
     println(io, "TEXT(beginproblem());")

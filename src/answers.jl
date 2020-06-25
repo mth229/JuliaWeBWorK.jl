@@ -574,9 +574,16 @@ q2 = stringq("Spell  out {{:a1}}", (a) -> ("one","two","three")[a], (1:3,))
 ```
 """
 function stringq(question, fn, vars, solution="")
-    length(vars) == 0 && throw(ArgumentError("why?"))
-    id = string(hash((vars, fn, question, solution)))
-    StringQ(id, vars, fn, question, solution)
+    #  no randomization and we  introduce a **fake one**
+    if  length(vars) ==  0
+        fn1 = (a)  ->  fn()
+        vars = (1:1,)
+    else
+        fn1  = fn
+    end
+
+    id = string(hash((vars, fn1, question, solution)))
+    StringQ(id, vars, fn1, question, solution)
 end
 
 ## Partial for create_answer_tpl
