@@ -143,7 +143,7 @@ end
 function write_pg(::CommonMark.CodeBlock, w, node, ent)
     CommonMark.cr(w)
     for line in eachline(IOBuffer(node.literal))
-        CommonMark.literal(w, "⋮\\( \\verb~ ")
+        CommonMark.literal(w, "|\\( \\verb~ ") # ⋮ is an issue with knowLink
         CommonMark.literal(w, line)
         CommonMark.literal(w, "~\\) \$BR")
         CommonMark.cr(w)
