@@ -63,7 +63,7 @@ loadMacros("PGessaymacros.pl");
 ##loadMacros("PGcourse.pl");
 
 Context()->{format}{number} = "%.16g";
-Context()->variables->add(y=>'Real', z=>'Real', m=>'Real', n=>'Real');
+Context()->variables->add(y=>'Real', z=>'Real', t=>'Real', u=>'Real', m=>'Real', n=>'Real');
 Context()->flags->set(ignoreEndpointTypes=> 1);
 
 my %seen;  # hat tip to https://perlmaven.com/unique-values-in-an-array-in-perl;  filter Context->strings->add
