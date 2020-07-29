@@ -123,7 +123,7 @@ function escape_string(str, id="XXXX",  n=16)
     params  =  Dict()
     for i in 1:n
         k = Symbol("a"*string(i))
-        v = "\\\$a"*string(i)*"aa"*id*" "
+        v = "\\\$a"*string(i)*"aa"*id * " " ## to space or not to space...
         params[k] = v
     end
     
@@ -179,8 +179,8 @@ Example
 
 ```
 r = randomizer(1:3)
-q1 =  numericq("What is  ``2-{{:a1}}?``", (a) -> 2-a,  r)
-q2 =  numericq("What is  ``3-{{:a1}}?``", (a) -> 3-a,  r)
+q1 =  randomq("What is  ``2-{{:a1}}?``", (a) -> 2-a,  r)
+q2 =  randomq("What is  ``3-{{:a1}}?``", (a) -> 3-a,  r)
 Page("test", (r, q1, q2))
 ```
 """
@@ -228,7 +228,7 @@ function answer(a)
   Formula(out)
 end
 randomizer = (1:5,)
-numericq(question,  answer, randomizer)
+randomq(question,  answer, randomizer)
 ```
 
 !!! note 
@@ -257,7 +257,7 @@ function  answer(a)
    List(1,2,a)
 end
 randomizer = (3:5,)
-numericq(question,  answer, randomizer)
+randomq(question,  answer, randomizer)
 ```
 """
 struct List
@@ -278,7 +278,7 @@ Example
 ```
 question = raw"On what  intervals is \( f(x)=(x+1) ⋅ x ⋅ (x-1) \) positive?"
 answer() =  List([Interval(-1, 0), Interval(1,Inf)])
-numericq(question, answer, ())
+randomq(question, answer, ())
 ```
 """
 struct Interval
@@ -431,7 +431,7 @@ question_partial(r::AbstractRandomizedQ) =  """
 ##
 
 
-struct NumericQ <: AbstractRandomizedQ
+struct RandomQ <: AbstractRandomizedQ
     id
     vars
     fn
@@ -443,25 +443,37 @@ end
 
 
 
-## numericq((a1=1:5,a2=[1,2,3]),     # a  tuple of n iterables
+## randomq((a1=1:5,a2=[1,2,3]),     # a  tuple of n iterables
 ##          (a1) -> sin(a1),         # an n-ary function giving answer for a combination of values
 ##          "What  is sin({{:a1}})?",# a string. Use {{:ai}}  to  reference random parameters
 ##          "It is `sin({{:a1}})`.") # a string.
 
 """
-    numericq(question, ans_fn, [random];  solution,  tolerance=1e-4,  ordered=false)
+    randomq(question, ans_fn, random;  solution,  tolerance=1e-4,  ordered=false)
 
-* question is a string processed through `Markdown` and may include LaTex where `\\( \\)`  and  `\\[  \\]` are
+
+Means to ask questions which are randomized within `Julia`. The basic usage expects one or more numeric values as the answer. The answers may be randomized by specifying random parameter values and an answer function which returns the answer for the range of values specified by the randomized parameters. Besides numeric values, the `Formula` type can be used to specify an expresion for the answer; the `Interval` type can be used to specify one or more intervals for an answer (all intervals are assumed open).
+
+The function `numericq` is an alias.
+
+Arguments:
+
+* `question` is a string processed through `Markdown` and may include LaTex where `\\( \\)`  and  `\\[  \\]` are
 used for  inline math and display math. The `raw` string macro is useful to avoid  escaping  back slashes. In Markdown, inline  literals need *two* backtics, not *one*, as is standard.
 
 References to randomized variables is  through  `{{:a1}}`, `{{:a2}}`, `{{:a3}}`,….
 
-* The answer function is  an n-ary function of the  randomized parameters
+* `ans_fn`: the answer function is  an n-ary function of the  randomized parameters
 
-* the  random parameters are specified  by  0,1,2,or 3  iterable objects (e.g. `1:5` or `[1,2,3,5]`) combined in a tuple (grouped
-with parentheses; use  `(itr,)` if only 1 randomized parameter. Alternatiively, a  `ranodmizer` object may be passed allowing  shared randomization amongst questions.
+* `random`: the random parameters are specified by 0,1,2,or more (up
+to 16) iterable objects (e.g., `1:5` or `[1,2,3,5]`) combined in a
+tuple (grouped with parentheses; use `(itr,)` if only 1 randomized
+parameter). Alternatively, a [`randomizer`](@ref) object may be passed
+allowing shared randomization amongst questions.
 
-* tolerance is  an *absolute* tolerance.
+The collection of all possible outputs for the given random parameterizations are generated and `WeBWorK` selects an index from among them.
+
+* tolerance is  an *absolute* tolerance, when the output is numeric.
 
 * `ordered` is only for the case where the output is a list and you want an exact order
 
@@ -469,14 +481,14 @@ Examples
 
 ```
 using SymPy, SpecialFunctions
-numericq("What is the value  of  `airy(pi)`?", () -> airyai(pi), ())
-numericq("What is ``{{:a1}} + {{:a2}}``?",  (a,b) -> a+b, (1:5, 1:5))
-numericq("What is ``{{:a1}}*{{:a2}}*{{:a3}}``?",  (a,b) -> a+b, (1:5, 1:5,1:5))  ## parses fine, as `` in Markdown is LaTeX
-numericq("What is \\({{:a1}}⋅{{:a2}}⋅{{:a3}}\\)?",  (a,b) -> a+b, (1:5, 1:5,1:5)) ## note \\cdot, not *, unfortunate parsing o/w
-numericq("Estimate from your graph the \\(x\\)-intercept.", ()-> 2.3, ();  tolerance=0.5)
-numericq("What is \\( \\infty  \\)?",  () ->  Inf, ())
-numericq("What is \\( {1,2,{{:a1}} } \\)?",  (a) -> List(1,2,a), (3:6), ordered=true)
-numericq("What is the derivative of  \\( \\sin(x) \\)?", () -> (@vars x;  Formula(diff(sin(x),x))),  ())
+randomq("What is the value  of  `airy(pi)`?", () -> airyai(pi), ())
+randomq("What is ``{{:a1}} + {{:a2}}``?",  (a,b) -> a+b, (1:5, 1:5))
+randomq("What is ``{{:a1}}*{{:a2}}*{{:a3}}``?",  (a,b) -> a+b, (1:5, 1:5,1:5))  ## parses fine, as `` in Markdown is LaTeX
+randomq("What is \\({{:a1}}⋅{{:a2}}⋅{{:a3}}\\)?",  (a,b) -> a+b, (1:5, 1:5,1:5)) ## note \\cdot, not *, unfortunate parsing o/w
+randomq("Estimate from your graph the \\(x\\)-intercept.", ()-> 2.3, ();  tolerance=0.5)
+randomq("What is \\( \\infty  \\)?",  () ->  Inf, ())
+randomq("What is \\( {1,2,{{:a1}} } \\)?",  (a) -> List(1,2,a), (3:6), ordered=true)
+randomq("What is the derivative of  \\( \\sin(x) \\)?", () -> (@vars x;  Formula(diff(sin(x),x))),  ())
 ```
 
 Plots may be randomized too.  See  [`Plot`](@ref), though they will not show in  a hard copy.
@@ -485,13 +497,13 @@ Plots may be randomized too.  See  [`Plot`](@ref), though they will not show in 
 using Plots
 p = plot(sin, 0, 2pi);
 plot!(zero);
-q = numericq("![A Plot](\$(Plot(p))) This is a plot  of ``sin`` over what interval?", ()->Interval(0, 2pi),())
+q = randomq("![A Plot](\$(Plot(p))) This is a plot  of ``sin`` over what interval?", ()->Interval(0, 2pi),())
 ```
 
 Or if `r` is a `randomizer`, 
 
 ```
-numericq("A plot caption", (a) ->  Plot(plot(sin, 0,  a*2pi)), r)
+randomq("A plot caption", (a) ->  Plot(plot(sin, 0,  a*2pi)), r)
 ```
 
 
@@ -501,7 +513,7 @@ numericq("A plot caption", (a) ->  Plot(plot(sin, 0,  a*2pi)), r)
    For `Interval` types,  may  need  to  set the context.
 
 """
-function numericq(
+function randomq(
     question,
     fn,
     vars=(); # tuple ##  Randomizer
@@ -509,12 +521,20 @@ function numericq(
     tolerance=1e-4,
     ordered=false # for the List type
 )
-    length(vars) == 0 && return fixed_numericq(fn, question, solution, tolerance, ordered)
+    length(vars) == 0 && return fixed_randomq(fn, question, solution, tolerance, ordered)
     id = string(hash((vars, fn, question, solution)))
-    NumericQ(id, vars, fn, question, solution, tolerance,ordered)
+    RandomQ(id, vars, fn, question, solution, tolerance,ordered)
 end
 
-struct FixedNumericQ  <: AbstractRandomizedQ
+"""
+    numericq
+
+Alias for [`randomq`](@ref).
+"""
+const numericq=randomq
+
+
+struct FixedRandomQ  <: AbstractRandomizedQ
     id 
     question
     solution
@@ -523,24 +543,24 @@ struct FixedNumericQ  <: AbstractRandomizedQ
     ordered
 end
 
-function  fixed_numericq(fn, question,  solution="",tolerance=(1e-4), ordered=false)
+function  fixed_randomq(fn, question,  solution="",tolerance=(1e-4), ordered=false)
     
     id = string(hash((question, solution)))
-    FixedNumericQ(id, question, solution, fn(),  tolerance,ordered)
+    FixedRandomQ(id, question, solution, fn(),  tolerance,ordered)
 end
 
 
 
-create_answer(r::FixedNumericQ) = """
+create_answer(r::FixedRandomQ) = """
 \$answer$(r.id) =  List($(r.answer));
 """
 
-function  answer_partial(r::Union{NumericQ, FixedNumericQ})
+function  answer_partial(r::Union{RandomQ, FixedRandomQ})
     strict = r.ordered ? ", ordered=>'strict'" :  ""
 """ tolerance=>$(r.tolerance), tolType=>"absolute"$strict"""
 end
 
-#function answer_tpl(r::Union{NumericQ, FixedNumericQ})
+#function answer_tpl(r::Union{RandomQ, FixedRandomQ})
 #    strict = r.ordered ? ", ordered=>'strict'" :  ""
 #    """
 #ANS( {{{:answer}}}->cmp(tolerance=>$(r.tolerance), tolType=>"absolute"  $strict ));
@@ -572,6 +592,9 @@ Examples:
 q1 = stringq(raw"Is \\({{:a1}} > 0\\)? (yes/no)", (a) -> ("no","yes")[(a>0) + 1], (-3:3,))
 q2 = stringq("Spell  out {{:a1}}", (a) -> ("one","two","three")[a], (1:3,))    
 ```
+
+!!! Note:
+    Using `yes/no` or `true/false` is common, so for these cases all 4 names are available, even if some do not appear in the collection of all possible outputs.
 """
 function stringq(question, fn, vars, solution="")
     #  no randomization and we  introduce a **fake one**

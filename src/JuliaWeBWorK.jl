@@ -15,7 +15,7 @@ using Random
 
 
 export Page
-export randomizer,  numericq, stringq, plotq, essayq
+export randomizer,  randomq, numericq, stringq, plotq, essayq
 export radioq, multiplechoiceq
 export iframe, label,  hint
 export List,  Formula,  Interval, Plot
