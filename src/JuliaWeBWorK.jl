@@ -1,5 +1,10 @@
 module JuliaWeBWorK
 
+
+if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@optlevel"))
+    @eval Base.Experimental.@optlevel 1
+end
+
 ## USeful  docs
 ## https://www.uleth.ca/sites/default/files/2017/09/problemgenerationwithwebwork.pdf
 ## https://webwork.maa.org/mediawiki_new/images/a/ab/WeBWorK_Problem_Authoring_Tutorial.pdf
