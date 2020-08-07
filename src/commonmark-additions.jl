@@ -87,6 +87,10 @@ write_pg(::CommonMark.Emph, w, node, ent) = CommonMark.literal(w, ent ? raw"$BIT
 
 write_pg(::CommonMark.Strong, w, node, ent) = CommonMark.literal(w, ent ? raw"$BBOLD " : raw" $EBOLD")
 
+if VERSION >= v"1.5.0"
+    write_pg(::CommonMark.Backslash, w, node, ent) = CommonMark.literal(w, ent ? raw"" : raw"")
+end
+
 function write_pg(::CommonMark.Paragraph, w, node, ent)
     CommonMark.literal(w, ent ? "" : raw" $PAR")
     CommonMark.cr(w)

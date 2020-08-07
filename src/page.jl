@@ -14,6 +14,15 @@ Create a page  which prints as a `pg`  file.
 * `intro` may be marked  up with  in modified markdown 
 * `questions` is a tuple of questions
 * `context` optional value to create page context. Typical  usage: `context="Interval"`
+* `answer_context`: Dictionary of context for all answers on the page, e.g 
+```
+answer_context=Dict(:operators=>Dict(:undefine=>"'+','-','*','/','^'"),
+                    :functions=>Dict(:disable=>"'All'"),
+                    :constants=>Dict(:remove=>"\"e\"")
+                   )
+```
+The context dictionary above, is aliased as `numbers_only`.
+
 * `meta` for page meta data.
 
 
@@ -35,8 +44,27 @@ struct Page
     questions
     meta_information
     context
-    function Page(intro, questions; context="", kwargs...)
-        new(intro,  questions, Dict(kwargs...), context)
+    answer_context
+    function Page(intro, questions; context="",answer_context="", kwargs...)
+        new(intro,  questions, Dict(kwargs...), context, answer_context)
+    end
+end
+
+# utility function
+function kv(io::IO, v,d, ops=[])
+    if isa(d, Dict)
+        if(v != nothing)
+            push!(ops, v)
+            for (vv, dd) in d
+                kv(io, vv, dd, ops)
+            end
+        else
+            for (kk,vv) in d
+                kv(io, kk, vv)
+            end
+        end
+    else
+        println(io, """Context()->$(join(string.(ops), "->"))->$(v)($(d));\n""")
     end
 end
 
@@ -133,7 +161,12 @@ TeX=>""
     println(io,  "END_TEXT")
 
     println(io, "\n## ---------- show  answers  ----------\n")
-    
+
+    ops = []
+    if length(p.answer_context) > 0
+        kv(io, nothing, p.answer_context)
+    end
+
     for q in p.questions
         println(io, show_answer(q))
         println(io,"")
@@ -155,3 +188,15 @@ TeX=>""
 end
 
 
+
+"""
+    numbers_only
+
+Dictionary to pass to `answer_context` to turn off WeBWorK's simplification pass.
+There is no means to turn this off per problem, only per page.
+"""
+numbers_only = Dict(:operators=>Dict(:undefine=>"'+','-','*','/','^'"),
+                           :functions=>Dict(:disable=>"'All'"),
+                           :constants=>Dict(:remove=>"\"e\"")
+                           )
+export numbers_only
