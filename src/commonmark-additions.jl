@@ -83,16 +83,16 @@ BEGIN_TEXT
     end
 end
 
-write_pg(::CommonMark.Emph, w, node, ent) = CommonMark.literal(w, ent ? raw"$BITALIC " : raw" $EITALIC")
+write_pg(::CommonMark.Emph, w, node, ent) = CommonMark.literal(w, ent ? raw"$BITALIC " : raw"$EITALIC")
 
-write_pg(::CommonMark.Strong, w, node, ent) = CommonMark.literal(w, ent ? raw"$BBOLD " : raw" $EBOLD")
+write_pg(::CommonMark.Strong, w, node, ent) = CommonMark.literal(w, ent ? raw"$BBOLD " : raw"$EBOLD")
 
-if VERSION >= v"1.5.0"
+if VERSION >= v"1.4.0"
     write_pg(::CommonMark.Backslash, w, node, ent) = CommonMark.literal(w, ent ? raw"" : raw"")
 end
 
 function write_pg(::CommonMark.Paragraph, w, node, ent)
-    CommonMark.literal(w, ent ? "" : raw" $PAR")
+    CommonMark.literal(w, ent ? "" : raw"$PAR")
     CommonMark.cr(w)
 end
 
