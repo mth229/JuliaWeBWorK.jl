@@ -41,8 +41,8 @@ n16 =  numericq("How many  zeros in the plot: ![plot]($(Plot(p)))", () -> 1,());
 n1s  = (n11, n12, n13,  n14, n15, n16)
 
 ## randomization per problem
-n21 = numericq("Enter ``2*{{:a1}}``", (a) -> 2a, (1:3, ))
-n22 = numericq("Enter  ``{{:a1}}``, ``{{:a2}}``", (a,b) ->  List(a,b),  (1:3, 1:3))
+n21 = numericq("Enter `2*{{:a1}}`", (a) -> 2a, (1:3, ))
+n22 = numericq("Enter  `{{:a1}}`, `{{:a2}}`", (a,b) ->  List(a,b),  (1:3, 1:3))
 n23 = numericq(raw"Enter \([\sin({{:a1}}x)]'\)", (a) ->  (@vars  x; Formula(diff(sin(a*x),x))), (2:3,))
 n24 = numericq(raw"Enter  the interval \( ({{:a1}}, {{:a2}}) \)", (a,b) ->  Interval(a,b),  (1:3, 4:6))
 n25 = numericq(raw"Enter  the intervals \( ({{:a1}}, {{:a2}}) \) and \( ({{:a3}}, {{:a4}}) \)",
@@ -53,7 +53,7 @@ n2s = (n21, n22, n23, n24, n25, n27)
 
 ## Shared randomization
 r = randomizer(2:3)
-n31 = numericq("Enter ``2*{{:a1}}``", (a) -> 2a,r)
+n31 = numericq("Enter `2*{{:a1}}`", (a) -> 2a,r)
 n33 = numericq(raw"Enter \([\sin({{:a1}}x)]'\)", (a) ->  (@vars  x; Formula(diff(sin(a*x),x))), r)
 function n36_fn(a)
     p = plot(x->x^5 - x - (1+1/a), -1, 1.5)

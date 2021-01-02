@@ -26,6 +26,8 @@ export iframe, label,  hint
 export List,  Formula,  Interval, Plot
 export @L_str, @L_mstr
 export @q_str
+export @MT_str
+export @mt_str, @jmt_str
 
 #include("markdown-additions.jl")
 include("commonmark-additions.jl")

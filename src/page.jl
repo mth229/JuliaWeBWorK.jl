@@ -25,6 +25,7 @@ The context dictionary above, is aliased as `numbers_only`.
 
 * `meta` for page meta data.
 
+If `ENV["BRANDING"]` is set, it will be printed on each page generated.
 
 Example:
 
@@ -68,6 +69,18 @@ function kv(io::IO, v,d, ops=[])
     end
 end
 
+
+"""
+    numbers_only
+
+Dictionary to pass to `answer_context` to turn off WeBWorK's simplification pass.
+There is no means to turn this off per problem, only per page.
+"""
+numbers_only = Dict(:operators=>Dict(:undefine=>"'+','-','*','/','^'"),
+                           :functions=>Dict(:disable=>"'All'"),
+                           :constants=>Dict(:remove=>"\"e\"")
+                           )
+export numbers_only
 
 function Base.show(io::IO, p::Page)
 
@@ -115,9 +128,17 @@ HEADER_TEXT(<<EOF);
   }
   // -->
   </script>
+""")
+
+    ## print javascript headers, as needed
+    for T in unique(typeof.(p.questions))
+        print(io, javascript_headers(T))
+    end
+    
+    println(io, raw"""            
 EOF
 """)
-    ## add in somee missing styles
+    ## add in somee missing formatting styles
     println(io,"""
 \$BBLOCKQUOTE =  MODES(
 HTML=>"<BlockQuote>",
@@ -128,6 +149,10 @@ TeX =>""
 HTML=>"</BlockQuote>",
 TeX=>""
 );
+
+\$ADMONITION = MODES(
+HTML=>"&#9734;&nbsp;",
+TeX=>"\\(\\bigwhitestar)");
 """)
 
 
@@ -143,9 +168,14 @@ TeX=>""
 
     println(io, "\n## ---------- show  questions  ----------\n")
     
-    println(io, "BEGIN_TEXT\n")
 
+    println(io, raw"""$branding_ = <<"END_BRANDING";""")
     println(io, get(ENV, "BRANDING",  ""))
+    println(io, """END_BRANDING""")
+    println(io, raw"""$branding = MODES(HTML=>$branding_, TeX=>"[nothing to see]");""")
+ 
+    println(io, "BEGIN_TEXT\n")
+    println(io, raw"""$branding""")
     
     intro = replace(p.intro, "\\" => "\\\\")
     print(io, escape_string(intro))
@@ -172,31 +202,73 @@ TeX=>""
         println(io,"")
     end
 
-   # println(io, "#***************************************** Solution: ")
-   # println(io, "Context()->texStrings;")
-   # println(io, "BEGIN_SOLUTION")
+    ## Solutions go at end (when added)
+    soln_io = IOBuffer()
+    for q in  p.questions
+         print(soln_io,  show_solution(q))
+    end
+    solns = String(take!(soln_io))
 
-   #  println(io, "hi")
-   # for q in  p.questions
-   #     print(io,  show_solution(q))
-   # end
+    if length(solns) > 0
+    
+        println(io, "#***************************************** Solution: ")
+        println(io, """
+Context()->texStrings;
+SOLUTION(EV3(<<"END_SOLUTION"));
+""")
+        println(io, escape_string(solns))         
 
-   # println(io, "END_SOLUTION")
+        println(io, """
+END_SOLUTION
+Context()->normalStrings;
+""")
+    end
+
 
    println(io, "ENDDOCUMENT();")
 
 end
 
+"""
+    PAGE(SCRIPTNAME)
+
+Write a page to a file name based on the value of `SCRIPTNAME`. Returns an anonymous function 
+which can be called repeatedly to write a page with a filename based on `SCRIPTNAME`.
+
+This is designed to be used as `PAGE = JuliaWeBWorK.PAGE(@__FILE__)`. Then from one script file
+several related `pg` files can be generated. This might be useful for authoring exams
+where it is a good practice to have many separate problems and not one big one with many
+parts.
+
+```
+using JuliaWeBWorK
+PAGE = write_page(@__FILE__)
+
+q = numericq(raw"What is \\({{:a1}} + {{:a2}}\\)?", (a,b) -> a+b, (1:4, 2:5))
+PAGE("Addition", (q,))  # writes to SCRIPT_BASE_NAME-1.pg
+
+q = numericq(raw"What is \\({{:a1}} - {{:a2}}\\)?", (a,b) -> a-b, (1:4, 2:5))
+PAGE("subtraction", (q,))  # writes to SCRIPT_BASE_NAME-2.pg
+
+q = numericq(raw"What is \\({{:a1}} * {{:a2}}\\)?", (a,b) -> a*b, (1:4, 2:5))
+PAGE("multiplication", (q,))  # writes to SCRIPT_BASE_NAME-3.pg
+```
 
 
 """
-    numbers_only
+function PAGE(SCRIPTNAME)
+    base_nm = replace(SCRIPTNAME, r".jl$" => "")
+    ctr = Ref(1)
+    # return an anonymous function for printing a page
+    # to the numbered .pg file.
+    (args...;kwargs...) -> begin
+        fname = base_nm * "-$(ctr[]).pg"
+        ctr[] += 1
+        open(fname, "w") do io
+            show(io, Page(args..., kwargs...))
+        end
+    end
+end
 
-Dictionary to pass to `answer_context` to turn off WeBWorK's simplification pass.
-There is no means to turn this off per problem, only per page.
-"""
-numbers_only = Dict(:operators=>Dict(:undefine=>"'+','-','*','/','^'"),
-                           :functions=>Dict(:disable=>"'All'"),
-                           :constants=>Dict(:remove=>"\"e\"")
-                           )
-export numbers_only
+
+

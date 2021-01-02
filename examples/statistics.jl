@@ -18,7 +18,7 @@ q1_question = raw"""
 
 ### Problem 1
 
-From the  following ``R``  output, what is a  95% confidence interval?
+From the  following `R`  output, what is a  95% confidence interval?
 
 
 ```
@@ -48,7 +48,7 @@ q2a_question = raw"""
 
 ### Problem 2
 
-Output from an  ``R`` command is
+Output from an  `R` command is
 
 ```
     One Sample t-test

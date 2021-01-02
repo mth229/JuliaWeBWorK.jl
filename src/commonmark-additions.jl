@@ -41,6 +41,18 @@ write_pg(::CommonMark.Text, w, node, ent) = pg_escape(w, node.literal)
 write_pg(::CommonMark.SoftBreak, w, node, ent) = CommonMark.cr(w)
 write_pg(::CommonMark.LineBreak, w, node, ent) = CommonMark.cr(w) #CommonMark.literal(w, "") #raw"$BR")
 
+function write_pg(::CommonMark.Math, w, node, ent)
+    CommonMark.literal(w, "\\(")
+    pg_escape(w, node.literal)
+    CommonMark.literal(w, "\\)")
+end
+function write_pg(::CommonMark.DisplayMath, w, node, ent)
+    CommonMark.literal(w, "\\[")
+    pg_escape(w, node.literal)
+    CommonMark.literal(w, "\\]")
+end
+
+
 function write_pg(::CommonMark.Code, w, node, ent)
     CommonMark.literal(w, "\\(\\verb~")
     pg_escape(w, node.literal)
@@ -157,6 +169,73 @@ end
 
 write_pg(::CommonMark.HtmlBlock, w, node, ent) = nothing
 
+## --- Tables
+# Table support is a bit tricky. We would want to basically do
+# MODES(HTML=>write_html(o,w, node, ent),
+#       TeX => write_latex(o, w, node, ent));       
+# But this delegation doesn't seem so easy to arrange
+# so we basically arrange to only show in HTML
+# this requires copying most methods over from CommonMark
+function write_pg(o::CommonMark.Table, w, node, ent)
+    id =  randstring('a':'z',10)
+    if ent
+        print(w.buffer, """
+END_TEXT
+\$$id = MODES(
+HTML=><<"END_HTML";
+<table>
+""")
+    else
+        print(w.buffer, """
+</table>
+END_HTML
+, TeX=>"[Table only visible in HTML]");
+BEGIN_TEXT
+\$$id
+""")
+    end
+end
+
+## Admonition
+function write_pg(a::CommonMark.Admonition, rend, node, enter)
+    id =  randstring('a':'z',10)
+        if enter # use PG markup
+            print(rend.buffer, """
+\$PAR
+\$ADMONITION\$BOLD
+$(a.category)
+\$BOLD
+$(a.title)
+\$BR
+""")
+        else
+            print(rend.buffer, """
+\$PAR
+ """)
+        end
+end
+
+function tag(r::CommonMark.Writer, name, attributes=[], self_closing=false)
+    CommonMark.literal(r, '<', name)
+    for (key, value) in attributes
+        CommonMark.literal(r, " ", key, '=', '"', value, '"')
+    end
+    self_closing && CommonMark.literal(r, " /")
+    CommonMark.literal(r, '>')
+    r.last = '>'
+    return nothing
+end
+
+write_pg(::CommonMark.TableHeader, rend, node, enter) = tag(rend, enter ? "thead" : "/thead")
+write_pg(::CommonMark.TableBody, rend, node, enter) = tag(rend, enter ? "tbody" : "/tbody")
+write_pg(::CommonMark.TableRow, rend, node, enter) = tag(rend, enter ? "tr" : "/tr")
+
+function write_pg(cell::CommonMark.TableCell, rend, node, enter)
+    tag_name = cell.header ? "th" : "td"
+    tag(rend, enter ? "$tag_name align=\"$(cell.align)\"" : "/$tag_name")
+end
+
+# pg_escape(args...) = nothing
 let chars = Dict(
         '^'  => "\\^{}",
         '\\' => "{\\textbackslash}",
