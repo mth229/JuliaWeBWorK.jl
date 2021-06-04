@@ -19,15 +19,18 @@ using Base64
 using Random
 
 
-export Page
+export Page, QUESTIONS
 export randomizer,  randomq, numericq, stringq, plotq, essayq
 export radioq, multiplechoiceq
 export iframe, label,  hint
-export List,  Formula,  Interval, Plot
-export @L_str, @L_mstr
-export @q_str
-export @MT_str
-export @mt_str, @jmt_str
+export List,  Formula,  Interval
+export Plot, File
+export @L_str, @L_mstr  # deprecate this
+export @q_str           # deprecate this
+export @MT_str          # deprecate this
+export @mt_str
+export @jmt_str         # main macro for authoring allows $interpolation, single \
+export numbers_only
 
 #include("markdown-additions.jl")
 include("commonmark-additions.jl")

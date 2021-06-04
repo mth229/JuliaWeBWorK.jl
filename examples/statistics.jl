@@ -1,12 +1,13 @@
 using JuliaWeBWorK
 
+qs = JuliaWeBWorK.QUESTIONS()
 ## --------------------------------------------------
 
 meta=(Project="Some sample statistics questions",
      Question="3"
       )
 
-intro = raw"""
+intro = jmt"""
 
 Here are two sample   statistics questions.
 
@@ -14,7 +15,8 @@ Here are two sample   statistics questions.
 
 ## --------------------------------------------------
 
-q1_question = raw"""
+# need raw, dollar sign
+numericq(raw"""
 
 ### Problem 1
 
@@ -33,18 +35,18 @@ One Sample t-test
 mean of x
  7692.308
 ```
-"""
-
-
-q1_answer() -> List([Interval(7171.667, 8212.949)])
-
-q1 = numericq(q1_question, q1_answer, ())
+""",
+         () -> begin
+         List([Interval(7171.667, 8212.949)])
+         end,
+         ()
+         ) |> qs
 
 ## --------------------------------------------------
 
-q2r = randomizer(20:25)
+r = randomizer(20:25) |> qs
 
-q2a_question = raw"""
+numericq(raw"""
 
 ### Problem 2
 
@@ -63,39 +65,34 @@ mean of x
 ```
 
 (a) What is the observed value of the statistic?
-"""
+""",
+         (μ) ->  -9.0783,
+         r) |> qs
 
-q2a_answer(μ) -> -9.0783
-
-q2b_question  = raw"""
+numericq(jmt"""
 
 (b) What was the sample  size?
-"""
+""",
+         (μ) -> 9 + 1,
+         r) |> qs
 
-q2b_answer(μ) -> 9 + 1
-
-q2c_question = raw"""
+numericq(jmt"""
 
 (c)  Using  the fact that
-\[
+
+```math
 t = \frac{\bar{x} - \mu}{SE},
-\]
+```
 
 Find \( SE \).
-"""
-
-function q2c_answer(μ)
-    t, x̄ = -9.0783, 19.25
-    (x̄ -μ)/t
-end
-
-
-q2a =  numericq(q2a_question, q2a_answer, q2r)
-q2b =  numericq(q2b_question, q2b_answer, q2r)
-q2c =  numericq(q2c_question, q2c_answer, q2r)
-q2 =   (r, q2a, q2b, q2c, q2d)
+""",
+         (μ) -> begin
+         t, x̄ = -9.0783, 19.25
+         (x̄ -μ)/t
+         end,
+         r) |> qs
 
 ## --------------------------------------------------
-p  =  Page(intro, (q1,q2...); context="Interval",  meta...)
+p  =  Page(intro, qs; context="Interval",  meta...)
                 
 

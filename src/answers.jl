@@ -2,7 +2,7 @@
 """
    AbstractQ
 
-A  question has atleast two part: a question (marked up in julia-flavored markdown) and an answer, which is typically randomized. In  WeBWorK, there are  tpyically 3 places in  the file where a question needs defintions:  in the preamble  the values are defined (written by `create_answer`);  between `BEGIN_TEXT` and `END_TEXT` the question is asked (written by `show_answer`); and the grading  area  (written by `show_answer).  Not implemented (yet?) are the solutions.  Hints can be added through `hint`.
+A  question has atleast two part: a question (marked up in julia-flavored markdown) and an answer, which is typically randomized. In  WeBWorK, there are  tpyically 3 places in  the file where a question needs defintions:  in the preamble  the values are defined (written by `create_answer`);  between `BEGIN_TEXT` and `END_TEXT` the question is asked (written by `show_answer`); and the grading  area  (written by `show_answer).  Hints can be added through `hint`.
 
 """
 abstract type AbstractQ end
@@ -91,8 +91,9 @@ enable!(parser, AdmonitionRule())
 #enable!(parser, DollarMathRule()) use \(\) and \[ \] not $$ and $$...$$
 
 
+## XXX These should be deprecates XXX
 ## String macros for marking up question blocks or strings
-## typically `raw` or `mt` would be used
+## typically `raw`, `mt`, or `jmt` would be used
 ## but
 ## `L` will wrap results in display math if not already done. (Taken from LaTeXStrings package)
 ## `q` will wrap results in code backticks
@@ -124,9 +125,6 @@ useinfinity(a) = a
 
 
 
-
-
-
 raw"""
     escape_string(str, id, n=16)
 
@@ -135,7 +133,7 @@ Escape string does two things:
 * replace parameters specified through `{{:a1}}`, `{{:a2}}`, ...,
   `{{:an}}` with the randomized value. When authoring be aware that if
   the next character after the closing braces can not be part of
-  *valid* a variable name.
+  a *valid* variable name.
 
 * takes the markdown formatting in `str` and converts into "`text/pg`" format
 
@@ -200,10 +198,11 @@ A  means to share the randomization across questions.
 Example
 
 ```
-r = randomizer(1:3)
-q1 =  randomq("What is  ``2-{{:a1}}?``", (a) -> 2-a,  r)
-q2 =  randomq("What is  ``3-{{:a1}}?``", (a) -> 3-a,  r)
-Page("test", (r, q1, q2))
+qs = JuliaWeBWorK.QUESTIONS()
+r = randomizer(1:3) |> qs
+q1 =  randomq("What is  ``2-{{:a1}}?``", (a) -> 2-a,  r) |> qs
+q2 =  randomq("What is  ``3-{{:a1}}?``", (a) -> 3-a,  r) |> qs
+Page("test", qs)
 ```
 """
 function randomizer(args...; id=nothing)
@@ -216,7 +215,7 @@ end
 randomizer(r::Randomizer) = r
 
 function create_answer(r::Randomizer)
-    id, M = r.id, length(r.vars)
+    id, M = r.id, prod(length.(r.vars))
     """
 \$randomizer$(id) = random(0,$M-1, 1);
 """
@@ -307,23 +306,23 @@ struct Interval
     a
     b
     function  Interval(a,b)
-        a, b= a < b ? (a,b) :  (b,a)
-        a, b= useinfinity.((a,b))
+        a, b = a < b ? (a,b) :  (b,a)
+        a, b = useinfinity.((a,b))
         new(a,b)
     end
 end
 Base.show(io::IO, I::Interval) = print(io, "Interval($(I.a), $(I.b))")
 
     
-
-
+## ----
 
 """
     Plot(p)
 
 Convert plot  to `png`  object; run `Base64.base64encode`; wrap  for inclusion into `img` tag.
 
-Works for `Plots`, and would work for other graphing problems with a   `show(io, MIME("text/png"), p)` method.
+Works for `Plots`, and would work for other graphing backends with a  
+`show(io, MIME("text/png"), p)` method.
 """
 function Plot(p)
     io  = IOBuffer()
@@ -336,6 +335,27 @@ function Plot(p)
     print(io,data)
     String(take!(io))
 end
+
+"""
+    File(p)
+
+ run `Base64.base64encode`; wrap  for inclusion into `img` tag.
+"""
+function File(nm)
+
+    io = IOBuffer()
+    for r ∈ read(nm)
+        write(io, r)
+    end
+    data =  Base64.base64encode(take!(io))
+
+    io = IOBuffer()
+    print(io,"data:image/gif;base64,")
+    print(io,data)
+    String(take!(io))
+end
+    
+
 
 
 ##
@@ -415,7 +435,7 @@ function create_answer(r::AbstractRandomizedQ)
 
     # which randomizer do we use, a new one or recycled one?
     if (r.vars isa Randomizer)
-        randomizer= "\$randomizer$(r.id) = \$randomizer$(r.id);"
+        randomizer= "\$randomizer$(r.id) = \$randomizer$(r.vars.id);"
     else
         randomizer =  "\$randomizer$(r.id) = random(0,$M-1, 1);"
     end
@@ -495,13 +515,8 @@ Arguments:
      ("```math ... ```") can be used for display math.
    - use regular markdown for other markup. Eg, code, bold, italics, sectioning,
      lists.
-   - The `raw` string macro is helful to avoid escaping backslashes. As well,
-     there is an `L` macro for enclosing a string in LaTeX, a `q` string macro
-     for enclosing a string in code markup. Moreover, there is a `MT` string
-     macro useful for an initial pass through Mustache for variable substitution,
-     using `<<` and `>>` for tags. (This can be useful for including generated
-     plots
-
+   - The `jmt` string macro is helful to avoid escaping backslashes. It allows for string 
+     interpolation. Use `raw` if dollar signs have no meaning.
    - References to randomized variables are  through Mustache variables numbered 
      sequentially  `{{:a1}}`, `{{:a2}}`, `{{:a3}}`, ... up to 16 (by default).
 
@@ -534,24 +549,12 @@ randomq("Estimate from your graph the \\(x\\)-intercept.", ()-> 2.3, ();  tolera
 ## Dispaly math
 randomq("What is \\[ \\infty  \\]?",  () ->  Inf, ())
 randomq("What is \\( {1,2,{{:a1}} } \\)?",  (a) -> List(1,2,a), (3:6), ordered=true)
-randomq("What is the derivative of  \\( \\sin(x) \\)?", () -> (@vars x;  Formula(diff(sin(x),x))),  ())
+randomq("What is the derivative of  \\( \\sin(x) \\)?", () -> (@syms x;  Formula(diff(sin(x),x))),  ())
 ```
 
-Plots may be included in different manners. This example uses the `MT` macro, so that
-escaping slashes is not necessary:
+Plots may be included in different manners (see the example), but typically
+include via the `Plot` function as follows:
 
-```
-using Plots
-p = plot(sin, 0, 2pi)
-q = MT" ![a plot](<<{:plot}>>) shows a plot. What is the largest ``c`` with ``f(x)=0``?"
-randomq(q(plot=Plot(p)), ()->2pi)
-```
-
-The above does a pass through the template to substitute the plot, and
-then a pass to substitute any randomized variables.
-
-
-Alternatively, if a plain string is suitable, regular interpolation can be used:
 ```
 using Plots
 p = plot(sin, 0, 2pi);
@@ -649,6 +652,10 @@ q2 = stringq("Spell  out {{:a1}}", (a) -> ("one","two","three")[a], (1:3,))
 
 !!! Note:
     Using `yes/no` or `true/false` is common, so for these cases all 4 names are available, even if some do not appear in the collection of all possible outputs.
+
+!!! Note:
+    If the answers don't include all likely choices, then the student will not have the option
+of choosing the distractors.... This is not so great.
 """
 function stringq(question, fn, vars, solution="")
     #  no randomization and we  introduce a **fake one**
@@ -679,29 +686,6 @@ foreach (0 .. (\$N{{:id}}-1)) {
 ##
 ##--------------------------------------------------
 ##
-"""
-    INCLUDE(DIR)
-
-Returns a function that will includes the *text* of a file found
-relative to the specified directory (which would usually be
-`@__DIR__`). Intended for use with `jsxgraph` to keeps JavaScript
-files separate from `.jl` files.
-
-```
-INCLUDE = JuliaWeBWorK.INCLUDE(@__DIR__)
-INCLUDE("fname.js")
-```
-"""
-function INCLUDE(DIR)
-    nm -> begin
-        io = IOBuffer()
-        fname = joinpath(DIR, nm)
-        for l in readlines(fname)
-            println(io, l)
-        end
-        String(take!(io))
-    end
-end
 
 
 struct PlotQ <: AbstractRandomizedQ
@@ -741,12 +725,36 @@ show_answer(r::PlotQ) = ""
 ## ------ Choice questions ---------------------
 ##
 
+# helpers with randomization
+_eltype(x) = eltype(x)
+_eltype(x::P)  where  {P <: AbstractString} =  P
+_isiterable(::Mustache.MustacheTokens) = false
+_isiterable(i) = _eltype(i) != typeof(i)
+_flatten(xs) = reduce((a,b) -> vcat(a,_isiterable(b) ? collect(b) : b), xs, init=Any[])
+
+# randomize choices, change inds to string answer
+# choices is a collection. Each element which _isiterable  will be shuffled
+function randomize(choices, inds)
+    answers = Mustache.render.(_flatten(choices))[_isiterable(inds) ? collect(inds) : inds]
+    out = String[]
+    for choice ∈ choices
+        if _isiterable(choice)
+            σ = randperm(length(choice)) # shuffle
+            append!(out, Mustache.render.(choice[σ]))
+        else
+            push!(out, Mustache.render(choice))
+        end
+    end
+    out, answers
+end
+
+
+
 struct RadioQ <: AbstractChoiceQ
     id
     question
     answer
     choices
-    fixed
     solution
 
 end
@@ -754,143 +762,71 @@ end
 """
     radioq(question, choices,  answer, [solution])
 
-* choices. Pass as a single iterable for  all randomized choices (e.g., `("one","two","three")`); or as a tuple with a lead iterable,  in which case the second element(s) will appear at the end of the list (e.g., `(("one","two","three"),"four")` or
-   `(("one","two","three"),("four","five"))`
+* choices. A collection of possible answers. These may be nested collections, in which case the second level is randomized
 * answer. The index, within  the flattened choices, of  the answer  (1-based)
 
 Examples
 
 ```
-radioq("Pick \"three\"", ("one", "two","three"), 3)               # all randomize
+radioq("Pick \"three\"", ("one", "two","three"), 3)           # none randomized
+radioq("Pick \"three\"", (("one", "two","three"),), 3)        # all randomized
 radioq("Pick third", (("one", "two"),"three"),  3)            # "three" at end 
-radioq("Pick third", (("one","two"),  ("three",  "four")), 3)  # "three", "four" at end
+radioq("Pick third", (("one","two"),  ("three",  "four")), 3) # randomized each pair
 ```
 
-To specify that all are  ordered specify an iterable of length 1 containing an iterable:
 
 ```
 choices  =  ("one", "two","three")
 radioq("Pick \"three\"", [choices], 3)
 ```
 
-
-!!! note
-    Do to a quirk of parsing, the  answer as a value (not an index) should *not* be a number.
 """
 function radioq(question,
                 choices,
                 answer::Int,
                 solution=""
                 )
-    id = string(hash((question,  choices, answer, solution)))
 
-    # check if all fixed ((values...))
-    if _isiterable(choices[1])  && length(choices) ==  1
-        choices =  [choices[1][1:1],  choices[1][2:end]]
-    end
-    
-    
-    if  _isiterable(choices[1]) # check for first element being iterable
-        if _isiterable(choices[2])
-            full = vcat(choices[1]...,  choices[2]...)
-            fixed = choices[2]
-        else
-            full = vcat(choices[1]...,  choices[2])
-            fixed = (choices[2],)
-        end
-        n = length(choices[1])
-    else
-        full = choices
-        fixed = ()
-        n = length(choices)
-    end
 
-    ans = full[answer]
-    
-    
+    choices, answer = randomize(choices, answer)
+    id = string(hash((question, choices, answer, solution)))
 
-    RadioQ(id, question, ans, full, fixed, solution)
+
+    RadioQ(id, question, answer, choices, solution)
 end
 
 function create_answer(r::RadioQ)
     buf = IOBuffer()
     id = "\$answer$(r.id)"
     
-#    fmt  =  s-> escape_string(s)[6:end]
-    #    fmt =  x -> """ "$(escape_string(string(x))[1:end-6])" """
     fmt =  x -> """ "$(escape_string(string(x))[1:end-5])" """    
+
+    choices, answer = r.choices, r.answer
+    
     
     println(buf, "$id = RadioButtons(")
     println(buf, "[")
-    #qs = [""" "$(escape_string(q)[6:end])" """ for q in r.choices]
-    #qs = _show.(fmt.(r.choices))
-    qs = fmt.(r.choices)
-    println(buf, join(qs, ", " ))
-    println(buf,"],")
-    
-    answer = fmt(r.answer) #""" "$(escape_string(r.answer)[6:end])" """
-    println(buf, answer)
-    println(buf,  ",")
-
-    if !isempty(r.fixed)
-        println(buf, "last => [")
-        #qs = [""" "$(escape_string(q)[6:end])" """ for q in r.fixed]
-        #qs = _show.(fmt.(r.fixed))
-        qs = fmt.(r.fixed)        
-        println(buf, join(qs, ", " ))
-        println(buf,"],")
+    a,st = iterate(choices)
+    print(buf, fmt(a))
+    for a ∈ Iterators.rest(choices, st)
+        print(buf, ",", fmt(a))
     end
+    println(buf, "],")
+    
+    answer = fmt(answer)
+    println(buf, answer)
+    println(buf, ", noindex=>1")
     println(buf,");")
 
     String(take!(buf))
 end
-
-# create_answer_tpl(r::RadioQ) = """
-# \$answer{{:id}} = RadioButtons(
-# {{{:answers}}}, {{{:answer}}}); 
-# """
 
 
 question_partial(r::RadioQ) = """
 \\{ \$answer{{:id}}->buttons() \\}
 """
 
-# question_tpl(r::RadioQ,i=1) = """
-# {{{:question}}}
-# \$PAR
-# \\{ \$radiobutton{{:id}}->buttons() \\}
-# """
-
 answer_partial(r::RadioQ) =  ""
-#answer_tpl(r::RadioQ) = """
-#ANS( \$radiobutton$(r.id)->cmp() );
-#"""
-
-# function create_answer(r::RadioQ)
-#     isempty(r.random) && is.empty(r.fixed)  && throw(ArgumentError("need some choice"))
-
-#     rands =  join(["\"" *  replace.(string(x), "\"" => "“") *  "\""  for x  in  r.random], ", ")
-#     if r.randomize
-#         rands  =   "[" *  rands *  "]"
-#     end
-        
-#     fixs = "\"" *  replace(string(r.fixed), "\"" => "“")  * "\""
-    
-
-#     if  isempty(rands)
-#         answers  = fixs
-#     elseif isempty(r.fixed)
-#         answers  =  rands
-#     else
-#         answers  =  "[" *  rands * ", " * fixs *  "]"
-#     end
-
-#     answer = r.ans -  1 # 0-based
-
-#     Mustache.render(create_answer_tpl(r), (id=r.id, answers=answers, answer=answer))
-# end
-
-
 
 ##
 ##  --------------------------------------------------
@@ -899,9 +835,8 @@ answer_partial(r::RadioQ) =  ""
 struct MultiChoiceQ <: AbstractQ
     id
     question
-    correct
-    extra
-    fixed
+    answer
+    choices
     instruction
 end
 
@@ -910,103 +845,52 @@ end
 """
      multiplechoiceq(question, choices, answer; [instruction])
 
-* `choices` can have all randomized  choices (e.g. `("one","two","three")`); a single fixed non-randomized  choice (e.g., (`("one","two","three"), "four")`), or a list of non-randomized choices: (`("one","two","three"), ("four","five"))`). Tuples, vectors, or other iterables  can be used. For  a  fixed  order use a  single  iterable of choices: `[["one","two","three"]]`.
+* `choices` A collection of answers. An answer may be a collection, in which case it will be shuffled.
 
 * `answer`: a tuple or vector  of indices of the  correct answers. The  indices refer  to the components stacked in random then fixed order.
 
 Example:
 ```
-multiplechoiceq("Select all three", (raw"\\(1\\)", "**two**", "3"), (1,2,3))
-multiplechoiceq("Some question", (("one","two","three"),"four"), 4)
-multiplechoiceq("Some question", (("one","two","three"),("four","five")), (4,5))
+multiplechoiceq("Select all three", (raw"\\(1\\)", "**two**", "3"), (1,2,3)) # not randomised
+multiplechoiceq("Some question", (("one","two","three"),"four"), 4) # first three randomized
+multiplechoiceq("Some question", (("one","two","three"),("four","five")), (4,5)) # randomized first three, last two
 ```
 """
 function multiplechoiceq(question, choices, answer; instruction="Select one or more answers:")
 
-    id  =  string(hash((question, choices,  answer)))
+    choices, correct = randomize(choices, answer)
+    solution = ""
+    id = string(hash((question, choices, answer, solution)))
 
-    # check if all fixed ((values...))
-    if _isiterable(choices[1])  && length(choices) ==  1
-        choices =  [choices[1][1:1],  choices[1][2:end]]
-    end
-    
-    if  _isiterable(choices[1]) # check for first element being iterable
-        if _isiterable(choices[2])
-            full = vcat(choices[1]...,  choices[2]...)
-            fixed = choices[2]
-        else
-            full = vcat(choices[1]...,  choices[2])
-            fixed = (choices[2],)
-        end
-        n = length(choices[1])
-    else
-        full = choices
-        fixed = ()
-        n = length(choices)
-    end
-    correct  = full[[answer...]]
-    extra = setdiff(full[1:n], correct)
-
-    MultiChoiceQ(id, question, correct,  extra, fixed, instruction)
+    MultiChoiceQ(id, question, correct,  choices, instruction)
 end
-# helper to identify setup
-_eltype(x) = eltype(x)
-_eltype(x::P)  where  {P <: AbstractString} =  P
-_isiterable(i) = _eltype(i) != typeof(i)
 
 function create_answer(r::MultiChoiceQ)
     buf = IOBuffer()
     id = "\$answer$(r.id)"
 
-    #fmt =  x -> """ "$(escape_string(string(x))[1:end-6])" """
+    choices, answer = r.choices, r.answer
+
     fmt =  x -> """ "$(escape_string(string(x))[1:end-5])" """    
     
     println(buf, "$id = new_checkbox_multiple_choice();")
 
-
     println(buf, """$id -> qa("$(r.instruction)", """)
-    println(buf, join(fmt.(r.correct),  ", "))
+    if _isiterable(answer)
+        println(buf, join(fmt.(answer), ", "))
+    else
+        println(buf, fmt(answer))
+    end
     println(buf,");")
 
-    if !isempty(r.extra)
-        println(buf, """
-    $id -> extra(
-    """)
-        println(buf, join(fmt.(r.extra),  ", "))
-        println(buf,");")
-    end
-
-    if  !isempty(r.fixed)
-        println(buf, """
-    $id -> makeLast(
-    """)
-        println(buf, join(fmt.(r.fixed),  ", "))
-        println(buf,");")
-    end
+    println(buf, """
+$id -> makeLast(
+""")
+    println(buf, join(fmt.(choices),  ", "))
+    println(buf,");")
 
     String(take!(buf))
 end
-
-    
-        
-
-
-    
-    
-#     $mc = 
-# $mc -> qa (
-# "Select all expressions that are equivalent to  
-# \( e^{x^2 + 1/x} \).  There may be more than
-# one correct answer.", 
-# "\( e^{x^2} e^{1/x} \)$BR",
-# "\( e^{x^2} e^{x^{-1}} \)$BR",                
-# "\( e^{ (x^3+1) / x } \)$BR",
-# );
-# $mc -> extra(
-# "\( \displaystyle \frac{ e^{x^2} }{ e^x } \)$BR",
-# "\( e^{x^2} + e^{1/x} \)$BR",
-# );
-# $mc -> makeLast("None of the above");
 
 
 question_partial(r::MultiChoiceQ) = """
@@ -1169,7 +1053,7 @@ end
 Little inline popup.
 [docs](https://webwork.maa.org/wiki/Knowls)
 """
-hint(text, tag="hint...")  =  KnowlLink(text, tag)
+hint(text, tag="hint...")  =  KnowlLink(Mustache.render(text), tag)
 
 create_answer(r::KnowlLink) = ""
 
@@ -1228,6 +1112,8 @@ p = Page("Dragging polygons", (q,))
 
 Most of the examples in the [jsxgraph wiki](https://jsxgraph.uni-bayreuth.de/wiki/index.php/Category:Examples) work
 simply by copying the commands into a multi-line string, as in the example.
+
+The site [jsfiddle.net](jsfiddle.net) allows for easy testing of js code.
 """
 function jsxgraph(commands; domid="jxgbox", width=600, height=400)
     JSXGraph("jsxgraph_"*string(hash(label)), domid, width, height, commands)
@@ -1264,5 +1150,29 @@ show_question(jsxf::JSXGraph, args...) = Mustache.render(jsxgraph_q_tpl, jsxf)
 ## --------------------------------------------------
 ##
 
+"""
+    INCLUDE(DIR)
 
+Returns a function that will includes the *text* of a file found
+relative to the specified directory (which would usually be
+`@__DIR__`). Intended for use with `jsxgraph` to keeps JavaScript
+files separate from `.jl` files.
 
+```
+INCLUDE = JuliaWeBWorK.INCLUDE(@__DIR__)
+INCLUDE("fname.js")
+```
+"""
+function INCLUDE(DIR)
+    nm -> begin
+        io = IOBuffer()
+        fname = joinpath(DIR, nm)
+        for l in readlines(fname)
+            println(io, l)
+        end
+        String(take!(io))
+    end
+end
+
+# add this so that we can render input
+Mustache.render(x::Number) = string(x)

@@ -2,10 +2,12 @@
 
 using JuliaWeBWorK
 
-## raw is used so there is no need to escape backslashes
-q = raw"""
+## jmt is used so there is no need to escape backslashes
+intro = jmt"""
 
-# LaTeX markup can be done two ways (Julian or using LaTeX's \(,\) and \[,\])
+# LaTeX markup 
+
+LaTeX markup can be done two ways (Julian or using LaTeX's slash() or slash[])
 
 Inline: ``\LaTeX`` or \(\LaTeX\)
 
@@ -19,7 +21,7 @@ Display math can be done in two ways
 \sin(x)^2 = \frac{1}{2}
 \]
 
-The use of dollar signs for math markup is not supported.
+The use of dollar signs for math markup is not supported -- rather dollar signs in the `ww` string macro are for $("interpolation").
 
 
 # Markdown markup
@@ -66,8 +68,11 @@ Images
 
 ![some image](https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Tangent_to_a_curve.svg/200px-Tangent_to_a_curve.svg.png)
 
-"""
-q1 = numericq(q, ()->1, (); solution="No solution given")
+# quirks
 
-Page("Example of markup", (q1,))
+* The at sign of a macro is **special** and can't be printed without hacking it in directly. (@ is okay but not @ followed by a name
+
+"""
+
+Page(intro, ())
 

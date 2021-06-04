@@ -6,13 +6,13 @@
 #AuthorText2="Joseph Maher"
 #)
 raw"""
-    Page(intro::AbstractString, questions; context="",  meta...)
+    Page(intro, questions; context="",  meta...)
 
 
 Create a page  which prints as a `pg`  file.
 
-* `intro` may be marked  up with  in modified markdown 
-* `questions` is a tuple of questions
+* `intro` may be marked  up using modified markdown 
+* `questions` is a tuple of questions or `QUESTIONS` object
 * `context` optional value to create page context. Typical  usage: `context="Interval"`
 * `answer_context`: Dictionary of context for all answers on the page, e.g 
 ```
@@ -33,7 +33,7 @@ Example:
 using JuliaWeBWorK
 meta=(AuthorText="Julia", Institution="JuliaAcademy", Question="1")
 intro  = raw"# Problem 1"
-q1 = numericq(raw"What is  \({{:a1}} + {{:a2}}\)?",  (x,y)->x+y,  (1:5, 1:5))
+q1 = numericq("What is  ``{{:a1}} + {{:a2}}``?",  (x,y)->x+y,  (1:5, 1:5))
 p =  Page(intro, (q1,); meta...) 
 # open("mynew.pg","w") do io
 #    print(io, p)
@@ -80,7 +80,6 @@ numbers_only = Dict(:operators=>Dict(:undefine=>"'+','-','*','/','^'"),
                            :functions=>Dict(:disable=>"'All'"),
                            :constants=>Dict(:remove=>"\"e\"")
                            )
-export numbers_only
 
 function Base.show(io::IO, p::Page)
 
@@ -110,6 +109,8 @@ Context()->flags->set(ignoreEndpointTypes=> 1);
 my %seen;  # hat tip to https://perlmaven.com/unique-values-in-an-array-in-perl;  filter Context->strings->add
 $seen{"yes"} = 1; $seen{"no"}=1;$seen{"true"} = 1; $seen{"false"}=1;
 Context()->strings->add(qq(yes)=>{},qq(no)=>{},qq(true)=>{},qq(false)=>{});
+$ATSYMS  = qw"@syms"; 
+
 """)
 
     println(io, "TEXT(beginproblem());")
@@ -176,10 +177,10 @@ TeX=>"\\(\\bigwhitestar)");
  
     println(io, "BEGIN_TEXT\n")
     println(io, raw"""$branding""")
-    
-    intro = replace(p.intro, "\\" => "\\\\")
+
+    #intro = replace(p.intro, "\\" => "\\\\") # had this, replaced with
+    intro = Mustache.render(p.intro)
     print(io, escape_string(intro))
-    ## show(io, "text/pg", Markdown.parse(intro))
 
     println(io, "\n\n\$HR\$PAR\n")
     
@@ -271,4 +272,49 @@ function PAGE(SCRIPTNAME)
 end
 
 
+### ------ CONVENIENCES ------------
 
+
+# simple struct to hold questions
+# * can be passed to `page`
+# * the call method calls `push!(q, x)` so that questions can be piped into t
+#   these objects, as in `numericq(...) |> qs`
+struct Questions
+    qs
+end
+QUESTIONS() = Questions(Any[])
+Base.iterate(q::Questions) = iterate(q.qs)
+Base.iterate(q::Questions, st) = iterate(q.qs, st)
+Base.length(q::Questions) = length(q.qs)
+Base.push!(q::Questions, x) = push!(q.qs, x)
+## returning `x` allows use like `u = randomizer(...) |> qs`
+(q::Questions)(x) = (push!(q, x); x)
+
+
+## ----
+"return iterator over the letters `(a)`, `(b)`, ... Calling function increments letters"
+function LETTERS()
+    letters = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)", "(g)", "(h)", "(i)", "(j)", "(k)", "(l)", "(m)", "(n)", "(o)", "(p)", "(q)", "(r)", "(s)", "(t)", "(u)", "(v)", "(w)", "(x)", "(y)", "(z)"]
+    idx = Base.Ref(1)
+    () -> begin
+        idx[] = idx[] + 1
+        letters[idx[]-1]
+    end
+end
+
+### ------ HACKS ------------
+
+## A total hack to print `@syms` in a block
+## First \{\} are expanded, then $... and @... are substituted
+## so we can't generalize through the \{...\} phase
+ATSYMS = "\$ATSYMS"; export ATSYMS
+
+# https://github.com/JuliaLang/julia/blob/master/stdlib/InteractiveUtils/src/clipboard.jl
+function mac_clipboard(p)
+    open(pipeline(`pbcopy`, stderr=stderr), "w") do io
+        show(io, p)
+    end
+end
+export mac_clipboard
+
+    

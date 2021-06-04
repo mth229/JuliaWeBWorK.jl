@@ -202,8 +202,7 @@ function write_pg(a::CommonMark.Admonition, rend, node, enter)
         if enter # use PG markup
             print(rend.buffer, """
 \$PAR
-\$ADMONITION\$BOLD
-$(a.category)
+\$ADMONITION
 \$BOLD
 $(a.title)
 \$BR
@@ -251,3 +250,4 @@ let chars = Dict(
         end
     end
 end
+

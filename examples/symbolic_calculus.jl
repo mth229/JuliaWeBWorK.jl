@@ -1,13 +1,15 @@
 using JuliaWeBWorK
 using SymPy
 
+qs = JuliaWeBWorK.QUESTIONS()
+
 ## --------------------------------------------------
 
 meta=(Project="Some sample calculus questions",
      Question="3"
       )
 
-intro = raw"""
+intro = jmt"""
 
 [Details for students](https://webwork.maa.org/wiki/Student_Information)
 
@@ -23,86 +25,78 @@ Justify answers and show all work for full credit. No graphing calculators. No i
 
 ## --------------------------------------------------
 
-q1_question = raw"""
+numericq(jmt"""
 # Problem 1
-Let \[
- f(x) = \frac{4}{5} x^5 + 2x^4 - 20x^3 +  9
-\]
+Let
 
-(a) Find the critical points of  \(f(x)\)
-"""
+```math
+f(x) = \frac{4}{5} x^5 + 2x^4 - 20x^3 +  9
+```
 
-function q1_answer()
-    @vars x
-    ex = 4//5 * x^5 + 2x^4  -  20x^3 + 9
-    cps = solve(diff(ex,x))
-    List(cps) 
-end
-
-q1 = numericq(q1_question, q1_answer, ())
+(a) Find the critical points of  ``f(x)``
+""",
+         () -> begin
+         @syms x
+         ex = 4//5 * x^5 + 2x^4  -  20x^3 + 9
+         cps = solve(diff(ex,x))
+         List(cps) 
+         end,
+         ()) |> qs
 
 
 ## --------------------------------------------------
 
-q2_question = raw"""
+numericq(jmt"""
 (b) Specify all intervals where \(f(x)\) is *increasing*.
-"""
-function q2_answer()
-    @vars x
-    ex = 4//5 * x^5 + 2x^4  -  20x^3 + 9
-    dex = diff(ex,x)
-    cps = sort(solve(dex))
-    delta = minimum(diff(cps))/2
-    l = -Inf
-    Ints = []
-    for  r in cps
-        if dex(r-delta) > 0
-            push!(Ints, Interval(l,r))
-        end
-        l = r
-    end
-    if dex(l+delta) > 0
-        push!(Ints, Interval(l, Inf))
-    end
-    List(Ints)
-end
+""",
+         () -> begin
+         @syms x
+         ex = 4//5 * x^5 + 2x^4  -  20x^3 + 9
+         dex = diff(ex,x)
+         cps = sort(solve(dex))
+         delta = minimum(diff(cps))/2
+         l = -Inf
+         Ints = []
+         for  r in cps
+         if dex(r-delta) > 0
+         push!(Ints, Interval(l,r))
+         end
+         l = r
+         end
+         if dex(l+delta) > 0
+         push!(Ints, Interval(l, Inf))
+         end
+         List(Ints)
+         end,
+         ()) |> qs
 
-q2 = numericq(q2_question, q2_answer,  ())
-
-## --------------------------------------------------
-
-q3_question = "(c) For which critical points does the first derivative change sign from positive to negative?"
-
-function q3_answer()
-    @vars x
-    ex = 4//5 * x^5 + 2x^4  -  20x^3 + 9
-    dex = diff(ex,x)
-    cps = sort(solve(dex))
-    delta = minimum(diff(cps))/2
-    xs =  []
-    for r in cps
-        if (dex(r-delta) > 0) && (dex(r+delta) < 0)
-            push!(xs, r)
-        end
-    end
-    List(xs)
-end
-
-q3 =  numericq(q3_question,   q3_answer, ())
 
 ## --------------------------------------------------
 
-r  = randomizer(8:15)
+numericq(jmt"""
 
-q4a_question  = raw"""
-# Problem 2
-Let \[
-f(x) = x^4 -  12x^2  + {{:a1}}
-\]
+(c) For which critical points does the first derivative change sign from positive to negative?"
 
-(a) Find the critical points  of.
-"""
+""",
+         () -> begin
+         @syms x
+         ex = 4//5 * x^5 + 2x^4  -  20x^3 + 9
+         dex = diff(ex,x)
+         cps = sort(solve(dex))
+         delta = minimum(diff(cps))/2
+         xs =  []
+         for r in cps
+         if (dex(r-delta) > 0) && (dex(r+delta) < 0)
+         push!(xs, r)
+         end
+         end
+         List(xs)
+         end,
+         ()) |> qs
 
+## --------------------------------------------------
+
+r  = randomizer(8:15) |> qs
 function q4_helper(a)
     @vars x
     ex = x^4 - 12x^2 + a
@@ -112,76 +106,83 @@ function q4_helper(a)
     ips =  (sort∘solve)(dpp)
     (ex, cps, ips)
 end
-       
-function q4a_answer(a)
-    ex,cps,ips = q4_helper(a)
-    List(cps)
-end
 
-## --------------------------------------------------
+numericq(jmt"""
 
-q4b_question  = raw"""
-(b) Find  the inflection points of  \(f(x)\).
-"""
+# Problem 2
+Let 
 
-function q4b_answer(a)
-    ex,cps,ips = q4_helper(a)
-    List(ips)
-end
+```math
+f(x) = x^4 -  12x^2  + {{:a1}}
+```
 
-## --------------------------------------------------
+(a) Find the critical points  of ``f(x)``.
+""",
+         (a) -> begin
+         ex,cps,ips = q4_helper(a)
+         List(cps)
+         end,
+         r) |> qs
 
-q4c_question =  raw"""
-(c) Find the intervals where  \( f(x) \)   is concave  down
-"""
+numericq(jmt"""
 
-function q4c_answer(a)
-    ex,cps,ips = q4_helper(a)
-    x = free_symbols(ex)[1]
-    dex = diff(ex,x)
-    ddex = diff(ex,x,x)
-   
-    δ = minimum(diff(ips))/2
-    Ints =  []
-    l =  -Inf
-    for r in ips
-        if  ddex(r-δ) <  0
-            push!(Ints, Interval(l,r))
-        end
-        l = r
-    end
-    if ddex(l + δ) < 0
-        push!(Ints,  Interval(l,Inf))
-    end
-    List(Ints)
-end
+(b) Find  the inflection points of  ``f(x)``.
 
-## --------------------------------------------------
+""",
+         (a) -> begin
+         ex,cps,ips = q4_helper(a)
+         List(ips)
+         end,
+         r) |> qs
+         
+numericq(jmt"""
 
-q4d_question = raw"""
+(c) Find the intervals where  ``f(x)``  is concave  down.
+
+""",
+         (a) -> begin
+         ex,cps,ips = q4_helper(a)
+         x = free_symbols(ex)[1]
+         dex = diff(ex,x)
+         ddex = diff(ex,x,x)
+         
+         δ = minimum(diff(ips))/2
+         Ints =  []
+         l =  -Inf
+         for r in ips
+         if  ddex(r-δ) <  0
+         push!(Ints, Interval(l,r))
+         end
+         l = r
+         end
+         if ddex(l + δ) < 0
+         push!(Ints,  Interval(l,Inf))
+         end
+         List(Ints)
+         end,
+         r) |> qs
+
+numericq(jmt"""
+
 (d) Which critical points have a negative second derivative?
-"""
 
-function  q4d_answer(a)
-    ex,cps,ips = q4_helper(a)
-    x = free_symbols(ex)[1]
-    xs =  []
-    for c  in  cps
-        diff(ex,(x,2))(c) < 0 && push!(xs,  c)
-    end
-    List(xs)
-end
+""",
+         (a)  -> begin
+         ex,cps,ips = q4_helper(a)
+         x = free_symbols(ex)[1]
+         xs =  []
+         for c  in  cps
+         diff(ex,(x,2))(c) < 0 && push!(xs,  c)
+         end
+         List(xs)
+         end,
+         r) |> qs
 
-
-q4a = numericq(q4a_question, q4a_answer, r)
-q4b = numericq(q4b_question, q4b_answer, r)
-q4c = numericq(q4c_question, q4c_answer, r)
-q4d = numericq(q4d_question, q4d_answer, r)
                            
                            
 ##
 ## --------------------------------------------------
 ##
-p  =  Page(intro, (q1,q2, q3, q4a, q4b, q4c, q4d); context="Interval", meta...)  #  Interval here  is needed
+p  =  Page(intro, qs; context="Interval", meta...)  #  Interval here  is needed
                 
 
