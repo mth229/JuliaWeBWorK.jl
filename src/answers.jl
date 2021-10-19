@@ -51,7 +51,7 @@ function show_question(r::AbstractQ)
 end
 
 
-#  default 
+#  default
 question_tpl(r::AbstractQ) =  """
 {{{:question}}}
 \$PAR
@@ -68,7 +68,7 @@ end
 function answer_tpl(r::AbstractQ)
 "ANS( {{{:answer}}}->cmp( {{>:answer_partial}} ));"
 end
-    
+
 answer_partial(r::AbstractQ) = ""
 
 show_solution(r::Any) = ""
@@ -79,11 +79,11 @@ show_solution(r::Any) = ""
 ## --------------------------------------------------
 ##
 ## AbstractRandomizedQ
-           
+
 #  util
 
 # get  quotes when needed
-_show(x) = sprint(io->show(io, x))
+_show(x) = sprint(io->show(io, useinfinity(x)))
 const parser = CommonMark.Parser()
 enable!(parser, MathRule())
 enable!(parser, AdmonitionRule())
@@ -97,7 +97,7 @@ enable!(parser, AdmonitionRule())
 ## but
 ## `L` will wrap results in display math if not already done. (Taken from LaTeXStrings package)
 ## `q` will wrap results in code backticks
-## `MT` will parse a Mustache template using `<<`, `>>` 
+## `MT` will parse a Mustache template using `<<`, `>>`
 lstring(s)   =  (occursin("\\(", s) || occursin("\\[",s)) ? String(s) :  string(raw"\(", s, raw"\)")
 macro L_str(s, flags...)  lstring(s) end
 macro L_mstr(s, flags...) lstring(s) end
@@ -176,7 +176,7 @@ end
 #     str = replace(str, "\\" => "\\\\")
 #     str = Mustache.render(str, params)
 #     sprint(io->show(io, "text/pg", Markdown.parse(str)))
-    
+
 # end
 
 
@@ -237,12 +237,12 @@ Base.iterate(r::Randomizer, s) = Base.iterate(Base.Iterators.product(r.vars...),
 raw"""
    Formula(ex)
 
-For formula  answer, as in 
+For formula  answer, as in
 Example
 ```
 using SymPy
 question  = raw"What is  \( ( {{:a1}} x^2 )' \)"
-function answer(a)  
+function answer(a)
   @vars x
   ex = a*x^2
   out = diff(ex,x)
@@ -252,10 +252,10 @@ randomvals = (1:5,)
 randomq(question,  answer, randomvals)
 ```
 
-!!! note 
+!!! note
     This likely has cases not handled well through just call `string(ex)`. If so, the output of the answer should be
     `"Fomula(\\"desired_expression\\")"`, as a string
- 
+
 """
 struct Formula
     ex
@@ -313,7 +313,7 @@ struct Interval
 end
 Base.show(io::IO, I::Interval) = print(io, "Interval($(I.a), $(I.b))")
 
-    
+
 ## ----
 
 """
@@ -321,7 +321,7 @@ Base.show(io::IO, I::Interval) = print(io, "Interval($(I.a), $(I.b))")
 
 Convert plot  to `png`  object; run `Base64.base64encode`; wrap  for inclusion into `img` tag.
 
-Works for `Plots`, and would work for other graphing backends with a  
+Works for `Plots`, and would work for other graphing backends with a
 `show(io, MIME("text/png"), p)` method.
 """
 function Plot(p)
@@ -354,7 +354,7 @@ function File(nm)
     print(io,data)
     String(take!(io))
 end
-    
+
 
 
 
@@ -420,7 +420,7 @@ function make_values(vals, f; escape=false)
         if isa(val, String)
             val = sprint(io->show(io, "text/plain",  val))
         end
-        
+
         print(buf, val)
         print(buf, "]")
         M += 1
@@ -440,7 +440,7 @@ function create_answer(r::AbstractRandomizedQ)
         randomizer =  "\$randomizer$(r.id) = random(0,$M-1, 1);"
     end
 
-    
+
     Mustache.render(create_answer_tpl(r), (id=r.id, answers=all_answers, randomizer=randomizer,
                                            MathObject=MathObject(r),
                                            create_answer_partial=create_answer_partial(r),
@@ -508,16 +508,16 @@ The function `numericq` is an alias.
 
 Arguments:
 
-* `question` is a string processed through julia-flavored `Markdown` 
+* `question` is a string processed through julia-flavored `Markdown`
    - LaTeX can be included: Use `\\(, \\)` for inline math and `\\[,\\]`
      for display math. Alternatively, enclosing values in double back
-     ticks indicates inline LaTeX markup, and the math literal block syntax 
+     ticks indicates inline LaTeX markup, and the math literal block syntax
      ("```math ... ```") can be used for display math.
    - use regular markdown for other markup. Eg, code, bold, italics, sectioning,
      lists.
-   - The `jmt` string macro is helful to avoid escaping backslashes. It allows for string 
+   - The `jmt` string macro is helful to avoid escaping backslashes. It allows for string
      interpolation. Use `raw` if dollar signs have no meaning.
-   - References to randomized variables are  through Mustache variables numbered 
+   - References to randomized variables are  through Mustache variables numbered
      sequentially  `{{:a1}}`, `{{:a2}}`, `{{:a3}}`, ... up to 16 (by default).
 
 * `ans_fn`: the answer function is  an n-ary function of the  randomized parameters
@@ -542,9 +542,9 @@ using SymPy, SpecialFunctions
 randomq("What is the *value*  of  `airy(pi)`?", () -> airyai(pi), ())
 # latex via back ticks
 randomq("What is ``{{:a1}} + {{:a2}}``?",  (a,b) -> a+b, (1:5, 1:5))
-randomq("What is ``{{:a1}}*{{:a2}}+{{:a3}}``?",  (a,b,c) -> a*b+c, (1:5, 1:5,1:5)) 
+randomq("What is ``{{:a1}}*{{:a2}}+{{:a3}}``?",  (a,b,c) -> a*b+c, (1:5, 1:5,1:5))
 # latex via \\(, \\)
-randomq(raw"What is \\({{:a1}}\\cdot{{:a2}} + {{:a3}}\\)?",  (a,b,c) -> a*b+c, (1:5, 1:5,1:5)) 
+randomq(raw"What is \\({{:a1}}\\cdot{{:a2}} + {{:a3}}\\)?",  (a,b,c) -> a*b+c, (1:5, 1:5,1:5))
 randomq("Estimate from your graph the \\(x\\)-intercept.", ()-> 2.3, ();  tolerance=0.5)
 ## Dispaly math
 randomq("What is \\[ \\infty  \\]?",  () ->  Inf, ())
@@ -592,7 +592,7 @@ const numericq=randomq
 
 
 struct FixedRandomQ  <: AbstractRandomizedQ
-    id 
+    id
     question
     solution
     answer
@@ -601,16 +601,19 @@ struct FixedRandomQ  <: AbstractRandomizedQ
 end
 
 function  fixed_randomq(fn, question,  solution="",tolerance=(1e-4), ordered=false)
-    
+
     id = string(hash((question, solution)))
     FixedRandomQ(id, question, solution, fn(),  tolerance,ordered)
 end
 
 
 
-create_answer(r::FixedRandomQ) = """
-\$answer$(r.id) =  List($(r.answer));
+function create_answer(r::FixedRandomQ)
+    answer = useinfinity(r.answer)
+    """
+\$answer$(r.id) =  List($(answer));
 """
+end
 
 function  answer_partial(r::Union{RandomQ, FixedRandomQ})
     strict = r.ordered ? ", ordered=>'strict'" :  ""
@@ -647,7 +650,7 @@ Examples:
 
 ```
 q1 = stringq(raw"Is \\({{:a1}} > 0\\)? (yes/no)", (a) -> ("no","yes")[(a>0) + 1], (-3:3,))
-q2 = stringq("Spell  out {{:a1}}", (a) -> ("one","two","three")[a], (1:3,))    
+q2 = stringq("Spell  out {{:a1}}", (a) -> ("one","two","three")[a], (1:3,))
 ```
 
 !!! Note:
@@ -676,12 +679,21 @@ create_answer_partial(r::StringQ) = """
 \$N{{:id}} =  scalar @list{{:id}};
 foreach (0 .. (\$N{{:id}}-1)) {
   \$value = \$list{{:id}}[\$_][{{:N}}];
-  if (! \$seen{\$value}++ ) { 
+  if (! \$seen{\$value}++ ) {
     Context()->strings->add(qq(\$value)=>{});
   };
 };
 """
-    
+
+"""
+    yesnoq(question, yes::Bool, r=(), solution="")
+
+A question with non-computed answer "yes" (yes=true) or "no" (yes=false)
+"""
+function yesnoq(qustion, yes::Bool, r=(), solution="")
+    strinq(question, ()->"yes", r, solution)
+end
+
 
 ##
 ##--------------------------------------------------
@@ -770,7 +782,7 @@ Examples
 ```
 radioq("Pick \"three\"", ("one", "two","three"), 3)           # none randomized
 radioq("Pick \"three\"", (("one", "two","three"),), 3)        # all randomized
-radioq("Pick third", (("one", "two"),"three"),  3)            # "three" at end 
+radioq("Pick third", (("one", "two"),"three"),  3)            # "three" at end
 radioq("Pick third", (("one","two"),  ("three",  "four")), 3) # randomized each pair
 ```
 
@@ -798,12 +810,12 @@ end
 function create_answer(r::RadioQ)
     buf = IOBuffer()
     id = "\$answer$(r.id)"
-    
-    fmt =  x -> """ "$(escape_string(string(x))[1:end-5])" """    
+
+    fmt =  x -> """ "$(escape_string(string(x))[1:end-5])" """
 
     choices, answer = r.choices, r.answer
-    
-    
+
+
     println(buf, "$id = RadioButtons(")
     println(buf, "[")
     a,st = iterate(choices)
@@ -812,7 +824,7 @@ function create_answer(r::RadioQ)
         print(buf, ",", fmt(a))
     end
     println(buf, "],")
-    
+
     answer = fmt(answer)
     println(buf, answer)
     println(buf, ", noindex=>1")
@@ -871,8 +883,8 @@ function create_answer(r::MultiChoiceQ)
 
     choices, answer = r.choices, r.answer
 
-    fmt =  x -> """ "$(escape_string(string(x))[1:end-5])" """    
-    
+    fmt =  x -> """ "$(escape_string(string(x))[1:end-5])" """
+
     println(buf, "$id = new_checkbox_multiple_choice();")
 
     println(buf, """$id -> qa("$(r.instruction)", """)
@@ -900,7 +912,7 @@ question_partial(r::MultiChoiceQ) = """
 """
 
 
-show_answer(r::MultiChoiceQ) =  """    
+show_answer(r::MultiChoiceQ) =  """
  ANS( checkbox_cmp( \$answer$(r.id)->correct_ans() ) );
 """
 
@@ -985,7 +997,7 @@ create_answer(r::TextQ) = ""
 # {{{:question}}}
 # """
 #show_answer(r::TextQ) = ""
-    
+
 
 struct IFrameQ <: AbstractOutputQ
     id
@@ -1014,9 +1026,9 @@ end
 
 create_answer_tpl(r::IFrameQ) = """
 \$iframe{{:id}} = MODES(
-HTML=> 
+HTML=>
 "<iframe src='$(r.url)'
-frameborder='0' width='{{:width}}' height='{{:height}}'></iframe>", 
+frameborder='0' width='{{:width}}' height='{{:height}}'></iframe>",
 TeX =>
 "{{:alt}}"
 );
@@ -1068,7 +1080,7 @@ value=>escapeSolutionHTML(EV3P("$(txt)")), base64=>1);
 \\}
 """
 end
-                 
+
 ## ----
 
 struct JSXGraph <: AbstractOutputQ
@@ -1092,7 +1104,7 @@ javascript_headers(::Type{JSXGraph}) = """
 
 Insert a graphic built using the [jsxgraph](https://jsxgraph.uni-bayreuth.de/wp/index.html) javascript library.
 
-The javascript commands below have a DOM id passed to `initBoard` which is specified to `domid`, 
+The javascript commands below have a DOM id passed to `initBoard` which is specified to `domid`,
 with default of `jxgbox`. This would need adjusting were two or more graphs in the same page desired.
 
 Example (https://jsxgraph.uni-bayreuth.de/wiki/index.php/Drag_Polygons):

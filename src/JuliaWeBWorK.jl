@@ -20,7 +20,7 @@ using Random
 
 
 export Page, QUESTIONS
-export randomizer,  randomq, numericq, stringq, plotq, essayq
+export randomizer,  randomq, numericq, stringq, yesnoq, plotq, essayq
 export radioq, multiplechoiceq
 export iframe, label,  hint
 export List,  Formula,  Interval
