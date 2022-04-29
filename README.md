@@ -1,17 +1,23 @@
 # JuliaWeBWorK.jl
 
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://mth229.github.io/JuliaWeBWorK.jl/stable)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://mth229.github.io/JuliaWeBWorK.jl/dev)
+[![Build Status](https://github.com/mth229/JuliaWeBWorK.jl/workflows/CI/badge.svg)](https://github.com/mth229/JuliaWeBWorK.jl/actions)
+
+
+
 Author WeBWorK `pg` files using `Julia` scripts.
 
 
 ## Example
 
-A `pg` page consists of an intro, one or more questions, and some meta data. This example shows a `pg` page with three questions. 
+A `pg` page consists of an intro, one or more questions, and some meta data. This example shows a `pg` page with three questions.
 
 ```
 using JuliaWeBWorK
 
 # meta data
-meta = ( 
+meta = (
 KEYWORDS  = "Julia, WeBWorK",
 DBChapter = "Sample questions",
 DBSection = "section 1",
@@ -99,6 +105,3 @@ p
 Questions can be numeric (`numericq`), choice (`radioq`), multiple choice (`multiplechoiceq`), string answer (`stringq`), or an open-ended text box (`essayq`). As well, there is a means to display randomized plots (`plotq`), labels (`label`), or hint popups (`hint`).
 
 Questions are authored in Markdown with LaTeX equations possible. It is suggested to use the markdown syntax of ``...`` for inline math and ```math ... ``` for display equations. The questions may be parameterized by random values through the `{{:a1}}`, `{{:a2}}`, ... Mustache placeholders. The "addition" example illustrates. This randomization may be shared across problem using `randomizer`.
-
-
-
