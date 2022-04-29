@@ -197,7 +197,7 @@ Modules =  [JuliaWeBWorK]
 
 A full example script might look like the following:
 
-```@example
+```@example julia_webwork
 using JuliaWeBWorK
 meta = (
   KEYWORDS = "Sample questions",
