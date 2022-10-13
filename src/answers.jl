@@ -690,8 +690,8 @@ foreach (0 .. (\$N{{:id}}-1)) {
 
 A question with non-computed answer "yes" (yes=true) or "no" (yes=false)
 """
-function yesnoq(qustion, yes::Bool, r=(), solution="")
-    strinq(question, ()->"yes", r, solution)
+function yesnoq(question, yes::Bool, r=(), solution="")
+    stringq(question, ()->"yes", r, solution)
 end
 
 
@@ -1065,7 +1065,7 @@ end
 Little inline popup.
 [docs](https://webwork.maa.org/wiki/Knowls)
 """
-hint(text, tag="hint...")  =  KnowlLink(Mustache.render(text), tag)
+hint(text, tag="Hint...")  =  KnowlLink(Mustache.render(text), tag)
 
 create_answer(r::KnowlLink) = ""
 
