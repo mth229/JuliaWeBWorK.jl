@@ -8,7 +8,7 @@
 
 Show *modified* markdown code in format suitable for a `pg` file.
 
-There are necessary modifications due to how `Markdown` parses entities and how `pg` files are parsed. 
+There are necessary modifications due to how `Markdown` parses entities and how `pg` files are parsed.
 As such, only *most* markdown features are available. Here are some differences:
 
 * use "\`\`, \`\`" pairs for *literal* text. (In Markdown this indicates latex)
@@ -33,7 +33,7 @@ Plain, **bold**, *italics*, ``literal``
 
 ‵‵‵
 code
-blocks 
+blocks
 (use triple back ticks)
 ‵‵‵
 
@@ -70,7 +70,7 @@ function Base.show(io::IO, mime::MIME"text/pg", header::Markdown.Header{l}) wher
         println(io, "\n\$PAR\n\$BBOLD $(txt) \$EBOLD\n\$PAR\n\$PAR")
     end
     if l == 2
-        println(io, "\n\$PAR\n\$BITALICS $(txt) \$EITALICS\n\$PAR")        
+        println(io, "\n\$PAR\n\$BITALICS $(txt) \$EITALICS\n\$PAR")
     end
     if l > 2
         print(io, "\n\$PAR\n§ $(txt)\n\$PAR")
@@ -170,7 +170,7 @@ function Base.show(io::IO, ::MIME"text/pg", md::Markdown.Link)
 """)
 end
 
-## Hack. We use  ``x`` for literals  
+## Hack. We use  ``x`` for literals
 function Base.show(io::IO, ::MIME"text/pg", md::Markdown.LaTeX)
     txt = md.formula
     txt = replace(txt, "\\"=>"")
@@ -182,5 +182,3 @@ function Base.show(io::IO, ::MIME"text/pg", md::T) where {T <: AbstractString}
 end
 
 Base.show(io::IO, M::MIME"text/pg",  x::Symbol) = show(io, M,  string(x))
-
-

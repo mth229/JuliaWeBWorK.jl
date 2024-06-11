@@ -156,12 +156,14 @@ function escape_string(str, id="XXXX",  n=16)
     end
 
     str = Mustache.render(str, params)
+
     str = replace(str, raw"\(" => "\\\\(")
     str = replace(str, raw"\)" => "\\\\)")
     str = replace(str, raw"\[" => "\\\\[")
     str = replace(str, raw"\]" => "\\\\]")
     str = replace(str, "\\\$a" => raw"$a")
     str = sprint(io->show(io, "text/pg", parser(str)))
+    str = replace(str, "gif%3B" => "gif;")
     str
 end
 

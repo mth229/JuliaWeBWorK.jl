@@ -1,4 +1,5 @@
 
+
 # using CommonMark
 # import CommonMark: Writer, Node, Document, Text, SoftBreak, LineBreak, Code, HtmlInline, Link, Image, Emph, Strong, Paragraph, Heading, BlockQuote, Item, ThematicBreak, CodeBlock, HtmlBlock
 # Public.
@@ -73,10 +74,9 @@ end
 function write_pg(::CommonMark.Image, w, node, ent)
 
     id =  randstring('a':'z',10)
-    url =  node.t.destination 
+    url =  node.t.destination
     alt = node.t.title
     tex_url = match(r"^data:image/gif", url) == nothing ? url : "Image goes here"
-
     ## XXX alt does not show up in  title...
     if ent
         CommonMark.cr(w)
@@ -144,8 +144,10 @@ end
 
 function write_pg(item::CommonMark.Item, w, node, ent)
     #   form hmtl writer
-    bullets = ['\u25CF', '\u25CB', '\u25B6', '\u25B7', '\u25A0', '\u25A1']
-    bullet = bullets[min(w.format.list_depth, length(bullets))]
+    # use \bullet, not unicode
+    #bullets = ['\u25CF', '\u25CB', '\u25B6', '\u25B7', '\u25A0', '\u25A1']
+    #bullet = bullets[min(w.format.list_depth, length(bullets))]
+    bullet = "\\(\\bullet\\)"
     CommonMark.literal(w, ent ? "$bullet" : "")
     CommonMark.cr(w)
 end
@@ -172,7 +174,7 @@ write_pg(::CommonMark.HtmlBlock, w, node, ent) = nothing
 ## --- Tables
 # Table support is a bit tricky. We would want to basically do
 # MODES(HTML=>write_html(o,w, node, ent),
-#       TeX => write_latex(o, w, node, ent));       
+#       TeX => write_latex(o, w, node, ent));
 # But this delegation doesn't seem so easy to arrange
 # so we basically arrange to only show in HTML
 # this requires copying most methods over from CommonMark
@@ -250,4 +252,3 @@ let chars = Dict(
         end
     end
 end
-
