@@ -10,7 +10,7 @@ abstract type AbstractQ end
 """
     AbstractRandomizedQ
 
-A question where randomization is done  by creating an array of *all* possible values  for the sample space in `Julia` and having WeBWorK  select  one of the values. The [`randomizer`](ref) function can  be   used to share this random selection amongst questions.
+A question where randomization is done  by creating an array of *all* possible values  for the sample space in `Julia` and having WeBWorK  select  one of the values. The `randomizer` function can  be   used to share this random selection amongst questions.
 """
 abstract type  AbstractRandomizedQ <: AbstractQ end
 
@@ -236,14 +236,14 @@ Base.iterate(r::Randomizer, s) = Base.iterate(Base.Iterators.product(r.vars...),
 ## Some output style mark up
 
 
-raw"""
+"""
    Formula(ex)
 
 For formula  answer, as in
 Example
 ```
 using SymPy
-question  = raw"What is  \( ( {{:a1}} x^2 )' \)"
+question  = raw"What is  ``( {{:a1}} x^2 )``?"
 function answer(a)
   @vars x
   ex = a*x^2
@@ -267,15 +267,15 @@ Base.show(io::IO, F::Formula) = print(io, "Formula(\""  * _show(F.ex) * "\")")
 #Formula(ex) = "Formula(\"$(string(ex))\")"
 
 
-raw"""
-   List(...)
+"""
+   List(as...)
 
 For List comparison, the function  should return answers  wrapped in  `List`; e.g. (`List(1,2,3)`).
 
 Example
 ```
 using SymPy
-question = raw"What are the elements of  \( {1,2, {{:a1}}  } \)"
+question = raw"What are the elements of  ``{1,2, {{:a1}}  }``"
 function  answer(a)
    List(1,2,a)
 end
@@ -292,14 +292,14 @@ end
 Base.show(io::IO, l::List) = print(io, "List("  * join(_show.(l.x),  ", ") *  ")")
 
 
-raw"""
+"""
     Interval(a,b)
 
-Intervals have a < b, and are graded regardless of open or closed
+Intervals have `a < b`, and are graded regardless of open or closed
 
 Example
 ```
-question = raw"On what  intervals is ``f(x)=(x+1) \cdot x \cdot (x-1)`` positive?"
+question = raw"On what  intervals is ``f(x)=(x+1) \\cdot x \\cdot (x-1)`` positive?"
 answer() =  List([Interval(-1, 0), Interval(1,Inf)])
 randomq(question, answer, ())
 ```
@@ -527,7 +527,7 @@ Arguments:
 * `random`: the random parameters are specified by 0,1,2,or more (up
 to 16) iterable objects (e.g., `1:5` or `[1,2,3,5]`) combined in a
 tuple (grouped with parentheses; use `(itr,)` if only 1 randomized
-parameter). Alternatively, a [`randomizer`](@ref) object may be passed
+parameter). Alternatively, a `randomizer` object may be passed
 allowing shared randomization amongst questions.
 
 The collection of all possible outputs for the given random parameterizations are generated and `WeBWorK` selects an index from among them.
@@ -1127,7 +1127,7 @@ p = Page("Dragging polygons", (q,))
 Most of the examples in the [jsxgraph wiki](https://jsxgraph.uni-bayreuth.de/wiki/index.php/Category:Examples) work
 simply by copying the commands into a multi-line string, as in the example.
 
-The site [jsfiddle.net](jsfiddle.net) allows for easy testing of js code.
+The site [jsfiddle.net](https://jsfiddle.net) allows for easy testing of js code.
 """
 function jsxgraph(commands; domid="jxgbox", width=600, height=400)
     JSXGraph("jsxgraph_"*string(hash(label)), domid, width, height, commands)
