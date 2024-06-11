@@ -32,6 +32,8 @@ export @mt_str
 export @jmt_str         # main macro for authoring allows $interpolation, single \
 export numbers_only
 
+const SENTINEL = "XXXxxx...xxxXXX"
+
 #include("markdown-additions.jl")
 include("commonmark-additions.jl")
 include("answers.jl")

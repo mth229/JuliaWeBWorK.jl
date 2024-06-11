@@ -213,7 +213,7 @@ A simple page.
 """
 
 numericq("$(letters()) What is ``{{:a1}} + 2``?",
-         (a) -> a + 2, (1:3,)) |> cs
+         (a) -> a + 2, (1:3,)) |> qs
 radioq("$(letters()) Which is better?",
        ("*Dark* chocolate", "*White* chocolate"), 1) |> qs
 
