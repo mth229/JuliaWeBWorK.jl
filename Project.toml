@@ -11,9 +11,10 @@ Mustache = "ffc61752-8dc7-55ee-8c37-f3e9cdd09e70"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
-CommonMark = "0.6, 0.7, 0.8"
-Mustache = "1.0.10"
 Base64 = "<0.0.1, 1"
+CommonMark = "0.6, 0.7, 0.8"
+Documenter = "1"
+Mustache = "1.0.10"
 Random = "<0.0.1, 1"
 Test = "<0.0.1, 1"
 julia = "1"
