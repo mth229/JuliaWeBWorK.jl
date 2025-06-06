@@ -20,7 +20,7 @@ The basic flow is a "page" is defined in the script which when `show`n writes ou
 A page consists of
 
 * an introduction
-* questions
+* questions (questions, comments, hints)
 * metadata
 
 
@@ -36,7 +36,30 @@ A page has a `context` and `answer_context` instructing `WeBWorK` as to how it s
 
 ### An introduction
 
-A introduction is just markdown text. Typically this is done in a `raw` text block so that backslashes need not be escaped. However, it can be useful to interpolate `Julia` values, in which case `raw` would not be used.
+A introduction is just markdown text used to frame the page's questions.
+
+
+#### String macros
+
+While an introduction is just text that is parsed as markdown, it is expected that the string may contain a combination of values to interpolate or LaTeX markup. Similarly, the text for questions is typically a mustache template for randomization purposes.
+
+To work with text snippets some string macros are useful:
+
+* `raw"""`: the raw annotation creates a string without interpolation and unescaping. Dollar signs and backslashes are treated as written.
+
+* `jmt"""`: this annotation for `Mustache` is like raw, only it uses string interpolation for dollar signs (like regular strings) and parses into `Mustache` tokens. This is suggested.
+
+* `L"""`: The `L` annotation is re-exported from the `LaTeXStrings` package. It leaves dollar signs and backslashes alone, like raw` but when none are present, wraps the entire string in dollar signs as though it is a `LaTex` math command. This markup can be useful when making answers for radio choices questions.
+
+* `q"""`: This just wraps the string in single back ticks as though the text is code.
+
+#### LaTeX code
+
+It is suggested to use the Markdown markup of [Documenter.jl](https://documenter.juliadocs.org/stable/man/latex/) for LaTeX markup:
+
+* use paired double back ticks instead of a paired dollar signs for inline math. The use of dollar signs or backslash opening parentheses requires escaping for some strings.
+
+* use a triple-back tick gate annotated with `math` instead of double dollar signs or backslash square bracket.
 
 
 ### Questions
@@ -165,9 +188,9 @@ There are a few helpers for questions:
 
 * `Plot` allows for inclusion of a `Plots` object into a `pg` file. Plots are encoded and embedded.
 * `File` allows for inclusion of images stored in files into a `pg` file. Images are encoded and embedded.
-* `JuliaWeBWorK.QUESTIONS()` creates a container for questions that can be easily `push`ed onto via a pipe.
+* `JSXGraph` allows for inclusion of interactive graphs using `jsxgraph.org`.
+* `qs = JuliaWeBWorK.QUESTIONS()` creates a container for questions that can be easily `push`ed onto via a pipe.
 * `letters = JuliaWeBWorK.letters()` creates a function, `letters` which returns an incremented letter each time it is called. Useful to multi-part questions.
-* The `jmt` string macro allows interpolation using `$`; does not need backslashes escaped; and parses to Mustache tokens.
 
 
 ### Meta data
@@ -214,6 +237,7 @@ A simple page.
 
 numericq("$(letters()) What is ``{{:a1}} + 2``?",
          (a) -> a + 2, (1:3,)) |> qs
+
 radioq("$(letters()) Which is better?",
        ("*Dark* chocolate", "*White* chocolate"), 1) |> qs
 
