@@ -31,6 +31,7 @@ export @MT_str          # deprecate this
 export @mt_str
 export @jmt_str         # main macro for authoring allows $interpolation, single \
 export numbers_only
+export htmlpreview
 
 const SENTINEL = "XXXxxx...xxxXXX"
 
@@ -38,7 +39,7 @@ const SENTINEL = "XXXxxx...xxxXXX"
 include("commonmark-additions.jl")
 include("answers.jl")
 include("page.jl")
-
+include("htmlpreview.jl")
 
 
 end
