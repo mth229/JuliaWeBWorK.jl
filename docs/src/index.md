@@ -158,7 +158,25 @@ multiplechoiceq("Some question", (("one","two","three"),"four"), 4) # first thre
 multiplechoiceq("Some question", (("one","two","three"),("four","five")), (4,5)) # randomized first three, last two
 ```
 
+#### `subsetsortq`
 
+For a given set of elements, this allows the user to sort them into different "buckets" by dragging and dropping.
+
+```
+choices =  [
+        "mouse",        "ebola bacteria",
+        "flu virus",    "krill",
+        "house cat",    "emu",
+        "coyote",       "tapir",
+        "hippopotamus", "elephant",
+        "blue whale",   "eagle"
+    ]
+answers = ["Animals" => [],  # none left, though may be
+           "Mammals" => [ 1,5,7,8,9,10,11], # mammals ...
+           "Birds" => [6,12],
+           "Other" => [2,3,4]]
+subsetsortq("Organize the species", choices, answers)
+```
 
 #### `Essayq`
 

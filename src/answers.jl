@@ -953,7 +953,7 @@ answers = ["Animals" => [],
            "Mammals" => [ 1,5,7,8,9,10,11],
            "Birds" => [6,12],
            "Other" => [2,3,4]]
-subsetsortq("Organize the speciies", choices, answer)
+subsetsortq("Organize the speciies", choices, answers)
 ```
 """
 function subsetsortq(question, choices, answer; instruction="Drag and drop the values into the appropriate bucket:")
