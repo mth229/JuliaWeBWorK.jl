@@ -919,6 +919,116 @@ show_answer(r::MultiChoiceQ) =  """
 """
 
 
+##  --------------------------------------------------
+##
+
+struct SubsetSortQ <: AbstractQ
+    id
+    question
+    answer
+    choices
+    instruction
+end
+
+"""
+     subsetsortq(question, choices, answer; [instruction])
+
+* `choices` A vector of elements to sort into buckets
+
+* `answer`: a `Vector{Pair{String, Vector{Int64}}}` where the key is the name of the "bucket" and the vector contains the indices of the properly sorted elements. (Order within the bucket is not considered.)
+
+Unlike the underlying WeBWorK widget, we put all values initially into the first bucket.
+
+## Example:
+```
+choices =  [
+        "mouse",        "ebola bacteria",
+        "flu virus",    "krill",
+        "house cat",    "emu",
+        "coyote",       "tapir",
+        "hippopotamus", "elephant",
+        "blue whale",   "eagle"
+    ]
+answers = ["Animals" => [],
+           "Mammals" => [ 1,5,7,8,9,10,11],
+           "Birds" => [6,12],
+           "Other" => [2,3,4]]
+subsetsortq("Organize the speciies", choices, answer)
+```
+"""
+function subsetsortq(question, choices, answer; instruction="Drag and drop the values into the appropriate bucket:")
+
+    solution =  [aᵢ .- 1 for aᵢ ∈ last.(answer)]
+    id = string(hash((question, choices, answer, solution)))
+
+    SubsetSortQ(id, question, answer,  choices, instruction)
+end
+
+function create_answer(r::SubsetSortQ)
+    buf = IOBuffer()
+    id = "draggable$(r.id)"
+
+    choices, answer = r.choices, r.answer
+
+    choices_buf = IOBuffer()
+    print(choices_buf, "[ ")
+    for (i,c) ∈ enumerate(choices)
+        i != 1 && print(choices_buf, ", ")
+        print(choices_buf, "\"", escape_string(string(c))[1:end-5], "\"")
+    end
+    print(choices_buf, " ]")
+    choices′ = String(take!(choices_buf))
+
+    solution =  [aᵢ .- 1 for aᵢ ∈ last.(answer)]
+    soln_buf = IOBuffer()
+    print(soln_buf, "[ ")
+    for (i,vs) in enumerate(solution)
+        i != 1 && print(soln_buf, ", ")
+        print(soln_buf, isempty(vs) ? "[]" : vs)
+    end
+    print(soln_buf, " ]")
+    solution′ = String(take!(soln_buf))
+
+    subset_buf = IOBuffer()
+    for (i,(l,r)) ∈ enumerate(answer)
+        i !=1 && println(subset_buf, ", ")
+        println(subset_buf, "{")
+        println(subset_buf, "label => '", l, "',")
+        println(subset_buf, "indices =>", (i==1 ? collect(0:length(choices)-1) : "[]"), ",")
+        println(subset_buf, "removable => 0")
+        println(subset_buf, "}")
+    end
+    default_subsets = String(take!(subset_buf))
+
+
+    println(buf, """
+\$$(id) = DraggableSubsets(
+$(choices′),
+$(solution′),
+DefaultSubsets => [
+$default_subsets
+],
+OrderedSubsets => 1,
+AllowNewBuckets => 0
+);
+""")
+
+    String(take!(buf))
+end
+
+show_question(r::SubsetSortQ) = """
+    $(escape_string(r.question, r.id))
+    \$BR
+\\{ \$draggable$(r.id)->Print \\}
+\$BR
+"""
+
+
+show_answer(r::SubsetSortQ) =  """
+ANS(\$draggable$(r.id)->cmp);
+"""
+
+
 
 ##
 ##  --------------------------------------------------

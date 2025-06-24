@@ -21,7 +21,7 @@ using Random
 
 export Page, QUESTIONS
 export randomizer,  randomq, numericq, stringq, yesnoq, plotq, essayq
-export radioq, multiplechoiceq
+export radioq, multiplechoiceq, subsetsortq
 export iframe, label,  hint
 export List,  Formula,  Interval
 export Plot, File

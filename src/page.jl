@@ -11,10 +11,10 @@ raw"""
 
 Create a page  which prints as a `pg`  file.
 
-* `intro` may be marked  up using modified markdown 
+* `intro` may be marked  up using modified markdown
 * `questions` is a tuple of questions or `QUESTIONS` object
 * `context` optional value to create page context. Typical  usage: `context="Interval"`
-* `answer_context`: Dictionary of context for all answers on the page, e.g 
+* `answer_context`: Dictionary of context for all answers on the page, e.g
 ```
 answer_context=Dict(:operators=>Dict(:undefine=>"'+','-','*','/','^'"),
                     :functions=>Dict(:disable=>"'All'"),
@@ -34,7 +34,7 @@ using JuliaWeBWorK
 meta=(AuthorText="Julia", Institution="JuliaAcademy", Question="1")
 intro  = raw"# Problem 1"
 q1 = numericq("What is  ``{{:a1}} + {{:a2}}``?",  (x,y)->x+y,  (1:5, 1:5))
-p =  Page(intro, (q1,); meta...) 
+p =  Page(intro, (q1,); meta...)
 # open("mynew.pg","w") do io
 #    print(io, p)
 # end
@@ -86,19 +86,21 @@ function Base.show(io::IO, p::Page)
     for (k,v) in p.meta_information
         println(io, "## $k('$v')")
     end
-        
-    
+
+
     println(io, raw"""
 DOCUMENT();
 
 loadMacros("PG.pl","PGbasicmacros.pl","PGanswermacros.pl");
 loadMacros("PGstandard.pl");
+loadMacros("PGcourse.pl");
 loadMacros("MathObjects.pl");
 loadMacros("Parser.pl");
 loadMacros("AnswerFormatHelp.pl");
 loadMacros("parserRadioButtons.pl");
 loadMacros("PGchoicemacros.pl");
 loadMacros("PGessaymacros.pl");
+loadMacros("draggableSubsets.pl");
 ##loadMacros("PGML.pl");
 ##loadMacros("PGcourse.pl");
 
@@ -109,7 +111,7 @@ Context()->flags->set(ignoreEndpointTypes=> 1);
 my %seen;  # hat tip to https://perlmaven.com/unique-values-in-an-array-in-perl;  filter Context->strings->add
 $seen{"yes"} = 1; $seen{"no"}=1;$seen{"true"} = 1; $seen{"false"}=1;
 Context()->strings->add(qq(yes)=>{},qq(no)=>{},qq(true)=>{},qq(false)=>{});
-$ATSYMS  = qw"@syms"; 
+$ATSYMS  = qw"@syms";
 
 """)
 
@@ -135,8 +137,8 @@ HEADER_TEXT(<<EOF);
     for T in unique(typeof.(p.questions))
         print(io, javascript_headers(T))
     end
-    
-    println(io, raw"""            
+
+    println(io, raw"""
 EOF
 """)
     ## add in somee missing formatting styles
@@ -168,13 +170,13 @@ TeX=>"\\(\\bigwhitestar)");
     end
 
     println(io, "\n## ---------- show  questions  ----------\n")
-    
+
 
     println(io, raw"""$branding_ = <<"END_BRANDING";""")
     println(io, get(ENV, "BRANDING",  ""))
     println(io, """END_BRANDING""")
     println(io, raw"""$branding = MODES(HTML=>$branding_, TeX=>"[nothing to see]");""")
- 
+
     println(io, "BEGIN_TEXT\n")
     println(io, raw"""$branding""")
 
@@ -183,7 +185,7 @@ TeX=>"\\(\\bigwhitestar)");
     print(io, escape_string(intro))
 
     println(io, "\n\n\$HR\$PAR\n")
-    
+
     for q in  p.questions
         print(io,  show_question(q))
         println(io,"\$PAR\n")
@@ -211,13 +213,13 @@ TeX=>"\\(\\bigwhitestar)");
     solns = String(take!(soln_io))
 
     if length(solns) > 0
-    
+
         println(io, "#***************************************** Solution: ")
         println(io, """
 Context()->texStrings;
 SOLUTION(EV3(<<"END_SOLUTION"));
 """)
-        println(io, escape_string(solns))         
+        println(io, escape_string(solns))
 
         println(io, """
 END_SOLUTION
@@ -233,7 +235,7 @@ end
 """
     PAGE(SCRIPTNAME)
 
-Write a page to a file name based on the value of `SCRIPTNAME`. Returns an anonymous function 
+Write a page to a file name based on the value of `SCRIPTNAME`. Returns an anonymous function
 which can be called repeatedly to write a page with a filename based on `SCRIPTNAME`.
 
 This is designed to be used as `PAGE = JuliaWeBWorK.PAGE(@__FILE__)`. Then from one script file
@@ -316,5 +318,3 @@ function mac_clipboard(p)
     end
 end
 export mac_clipboard
-
-    
