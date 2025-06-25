@@ -658,6 +658,8 @@ nx2tableq(raw"Let ``f(x) = \sin(x)``,
           ) |> qs
 ```
 
+See [https://webwork.maa.org/wiki/Tables](https://webwork.maa.org/wiki/Tables) for details on `DataTable`, which is used in a restricted manner here.
+
 !!! note
     The `question` is not randomized, these each of the displayed questions may be.
 """
