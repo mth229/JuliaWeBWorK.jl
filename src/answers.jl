@@ -629,6 +629,104 @@ end
 #"""
 #end
 
+## --- numerictableq
+
+struct Nx2TableQ  <: AbstractRandomizedQ
+    question
+    qs
+    header
+    attributes
+end
+
+raw"""
+    nx2tableq(question, qs; header, caption, align, midrules, center)
+
+Line up questions in `qs` into an ``n`` by ``2`` table. The first column shows each questions "question", the second a space for an answer. The keyword arguments specify adjustable attributes.
+
+## Example
+```
+nx2tableq(raw"Let ``f(x) = \sin(x)``,
+[
+    numericq(L"\pi", ()->sin(pi), ()),
+    numericq(L"\pi/2", ()->sin(pi/2), ()),
+    numericq(L"3\pi/2", ()->sin(3pi/2), ()),
+    radioq("pick the larger value", [L"f(\pi/4)", L"f(\pi/3)"],2)
+];
+          header=(L"x",L"f(x)"),
+          caption="Enter the values",
+          align="l | l",
+          ) |> qs
+```
+
+See [https://webwork.maa.org/wiki/Tables](https://webwork.maa.org/wiki/Tables) for details on `DataTable`, which is used in a restricted manner here.
+
+!!! note
+    The `question` is not randomized, these each of the displayed questions may be.
+"""
+function nx2tableq(question, qs;
+                   header=(),
+                   caption="",
+                   align="",
+                   midrules=false,
+                   center  =true,
+                   captioncss = "font-family:sans-serif; font-weight:lighter;font-size:smaller;font-style:italic; "
+                   )
+    Nx2TableQ(question, qs, header,
+              (;caption,midrules,align,center,captioncss))
+end
+
+function create_answer(r::Nx2TableQ)
+    io = IOBuffer()
+    for q ∈ r.qs
+        print(io, create_answer(q), "\n")
+    end
+    String(take!(io))
+end
+
+function show_answer(r::Nx2TableQ)
+    io = IOBuffer()
+    for q ∈ r.qs
+        print(io, show_answer(q), "\n")
+    end
+    String(take!(io))
+end
+
+function show_question(r::Nx2TableQ)
+    fmt(x) = x
+    fmt(x::Bool) = Int(x)
+    fmt(x::AbstractString) = """ "$(escape_string(string(x))[1:end-5])" """
+    question = escape_string(r.question)
+
+    io = IOBuffer()
+    println(io, question, raw"$PAR")
+    println(io, raw""" \{
+DataTable(
+  [
+""")
+    if !isempty(r.header)
+        println(io, "[[",fmt(first(r.header)),", headerrow=>1], ",
+                fmt(last(r.header)), "],")
+    end
+    for (i,q) ∈ enumerate(r.qs)
+        i > 1 && println(io, ",")
+        print(io, "[", fmt(q.question), ", ",
+              Mustache.render(question_partial(q),id=q.id)[3:end-3], "]")
+    end
+    println(io, "],")
+    for (k,v) ∈ pairs(r.attributes)
+        isempty(v) && continue
+        println(io, fmt(k), " => ", fmt(v), ",")
+    end
+    println(io, raw"""
+);
+\}
+""")
+    String(take!(io))
+end
+
+
+
+
 
 ##
 ## --------------------------------------------------

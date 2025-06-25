@@ -178,6 +178,24 @@ answers = ["Animals" => [],  # none left, though may be
 subsetsortq("Organize the species", choices, answers)
 ```
 
+#### `nx2tableq`
+
+WeBWorK has a `niceTable.pl` macro that allows alignment of questions using tables. The `nx2tableq` is a wrapper around a set of questions formatting them in a ``n`` by ``2`` layout with the first column being the question, the second column space for an answer. There are attributes to set a caption, add rules, align the columns, and center the table in the display.
+
+```
+nx2tableq(raw"Let ``f(x) = \sin(x)``."
+[
+    numericq(L"\pi", ()->sin(pi), ()),
+    numericq(L"\pi/2", ()->sin(pi/2), ()),
+    numericq(L"3\pi/2", ()->sin(3pi/2), ()),
+    radioq("pick the larger value", [L"f(\pi/4)", L"f(\pi/3)"],2)
+];
+          header=(L"x",L"f(x)"),
+          caption="Enter the values",
+          align="l | l",
+          ) |>qs
+```
+
 #### `Essayq`
 
 For longer form text answers that are graded individually. Only 1 per page is allowed.

@@ -101,6 +101,7 @@ loadMacros("parserRadioButtons.pl");
 loadMacros("PGchoicemacros.pl");
 loadMacros("PGessaymacros.pl");
 loadMacros("draggableSubsets.pl");
+loadMacros("niceTables.pl");
 ##loadMacros("PGML.pl");
 ##loadMacros("PGcourse.pl");
 
