@@ -657,6 +657,9 @@ nx2tableq(raw"Let ``f(x) = \sin(x)``,
           align="l | l",
           ) |> qs
 ```
+
+!!! note
+    The `question` is not randomized, these each of the displayed questions may be.
 """
 function nx2tableq(question, qs;
                    header=(),
