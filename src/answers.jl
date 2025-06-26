@@ -695,6 +695,7 @@ function show_question(r::Nx2TableQ)
     fmt(x) = x
     fmt(x::Bool) = Int(x)
     fmt(x::AbstractString) = """ "$(escape_string(string(x))[1:end-5])" """
+    fmt(x,id) = """ "$(escape_string(x, id)[1:end-5])" """
     question = escape_string(r.question)
 
     io = IOBuffer()
@@ -709,7 +710,7 @@ DataTable(
     end
     for (i,q) ∈ enumerate(r.qs)
         i > 1 && println(io, ",")
-        print(io, "[", fmt(q.question), ", ",
+        print(io, "[", fmt(q.question, q.id), ", ",
               Mustache.render(question_partial(q),id=q.id)[3:end-3], "]")
     end
     println(io, "],")
