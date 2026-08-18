@@ -21,7 +21,7 @@ using Random
 
 export Page, QUESTIONS
 export randomizer,  randomq, numericq, stringq, yesnoq, plotq, essayq
-export radioq, multiplechoiceq
+export radioq, multiplechoiceq, subsetsortq, nx2tableq
 export iframe, label,  hint
 export List,  Formula,  Interval
 export Plot, File
@@ -31,6 +31,7 @@ export @MT_str          # deprecate this
 export @mt_str
 export @jmt_str         # main macro for authoring allows $interpolation, single \
 export numbers_only
+export htmlpreview
 
 const SENTINEL = "XXXxxx...xxxXXX"
 
@@ -38,7 +39,7 @@ const SENTINEL = "XXXxxx...xxxXXX"
 include("commonmark-additions.jl")
 include("answers.jl")
 include("page.jl")
-
+include("htmlpreview.jl")
 
 
 end

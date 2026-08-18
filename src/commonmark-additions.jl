@@ -26,7 +26,7 @@ function write_pg(writer::CommonMark.Writer, ast::CommonMark.Node)
     for (node, entering) in ast
         if entering
             meta = node.meta
-            if haskey(meta, "id")
+            if !isnothing(meta) && haskey(meta, "id")
                 ## Could evaluate code, ....
                 CommonMark.literal(writer, "\\protect\\hyperlabel{", meta["id"], "}{}")
             end

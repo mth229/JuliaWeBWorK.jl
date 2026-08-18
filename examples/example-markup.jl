@@ -5,13 +5,13 @@ using JuliaWeBWorK
 ## jmt is used so there is no need to escape backslashes
 intro = jmt"""
 
-# LaTeX markup 
+# LaTeX markup
 
 LaTeX markup can be done two ways (Julian or using LaTeX's slash() or slash[])
 
 Inline: ``\LaTeX`` or \(\LaTeX\)
 
-Display math can be done in two ways 
+Display math can be done in two ways
 
 ```math
 \sin(x)^2 = \frac{1}{2}
@@ -49,8 +49,8 @@ verbatim text
 
 Quotation
 
-> Four score and seven years ago our fathers brought forth on this continent, 
-> a new nation, conceived in Liberty, and dedicated to the proposition that 
+> Four score and seven years ago our fathers brought forth on this continent,
+> a new nation, conceived in Liberty, and dedicated to the proposition that
 > all men are created equal.
 
 Admonition
@@ -72,7 +72,8 @@ Images
 
 * The at sign of a macro is **special** and can't be printed without hacking it in directly. (@ is okay but not @ followed by a name
 
+* you can't use markdown italics or bold for just a part of the word
+
 """
 
 Page(intro, ())
-

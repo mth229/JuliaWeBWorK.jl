@@ -629,6 +629,105 @@ end
 #"""
 #end
 
+## --- numerictableq
+
+struct Nx2TableQ  <: AbstractRandomizedQ
+    question
+    qs
+    header
+    attributes
+end
+
+raw"""
+    nx2tableq(question, qs; header, caption, align, midrules, center)
+
+Line up questions in `qs` into an ``n`` by ``2`` table. The first column shows each questions "question", the second a space for an answer. The keyword arguments specify adjustable attributes.
+
+## Example
+```
+nx2tableq(raw"Let ``f(x) = \sin(x)``,
+[
+    numericq(L"\pi", ()->sin(pi), ()),
+    numericq(L"\pi/2", ()->sin(pi/2), ()),
+    numericq(L"3\pi/2", ()->sin(3pi/2), ()),
+    radioq("pick the larger value", [L"f(\pi/4)", L"f(\pi/3)"],2)
+];
+          header=(L"x",L"f(x)"),
+          caption="Enter the values",
+          align="l | l",
+          ) |> qs
+```
+
+See [https://webwork.maa.org/wiki/Tables](https://webwork.maa.org/wiki/Tables) for details on `DataTable`, which is used in a restricted manner here.
+
+!!! note
+    The `question` is not randomized, these each of the displayed questions may be.
+"""
+function nx2tableq(question, qs;
+                   header=(),
+                   caption="",
+                   align="",
+                   midrules=false,
+                   center  =true,
+                   captioncss = "font-family:sans-serif; font-weight:lighter;font-size:smaller;font-style:italic; "
+                   )
+    Nx2TableQ(question, qs, header,
+              (;caption,midrules,align,center,captioncss))
+end
+
+function create_answer(r::Nx2TableQ)
+    io = IOBuffer()
+    for q ∈ r.qs
+        print(io, create_answer(q), "\n")
+    end
+    String(take!(io))
+end
+
+function show_answer(r::Nx2TableQ)
+    io = IOBuffer()
+    for q ∈ r.qs
+        print(io, show_answer(q), "\n")
+    end
+    String(take!(io))
+end
+
+function show_question(r::Nx2TableQ)
+    fmt(x) = x
+    fmt(x::Bool) = Int(x)
+    fmt(x::AbstractString) = """ "$(escape_string(string(x))[1:end-5])" """
+    fmt(x,id) = """ "$(escape_string(x, id)[1:end-5])" """
+    question = escape_string(r.question)
+
+    io = IOBuffer()
+    println(io, question, raw"$PAR")
+    println(io, raw""" \{
+DataTable(
+  [
+""")
+    if !isempty(r.header)
+        println(io, "[[",fmt(first(r.header)),", headerrow=>1], ",
+                fmt(last(r.header)), "],")
+    end
+    for (i,q) ∈ enumerate(r.qs)
+        i > 1 && println(io, ",")
+        print(io, "[", fmt(q.question, q.id), ", ",
+              Mustache.render(question_partial(q),id=q.id)[3:end-3], "]")
+    end
+    println(io, "],")
+    for (k,v) ∈ pairs(r.attributes)
+        isempty(v) && continue
+        println(io, fmt(k), " => ", fmt(v), ",")
+    end
+    println(io, raw"""
+);
+\}
+""")
+    String(take!(io))
+end
+
+
+
+
 
 ##
 ## --------------------------------------------------
@@ -916,6 +1015,116 @@ question_partial(r::MultiChoiceQ) = """
 
 show_answer(r::MultiChoiceQ) =  """
  ANS( checkbox_cmp( \$answer$(r.id)->correct_ans() ) );
+"""
+
+
+##  --------------------------------------------------
+##
+
+struct SubsetSortQ <: AbstractQ
+    id
+    question
+    answer
+    choices
+    instruction
+end
+
+"""
+     subsetsortq(question, choices, answer; [instruction])
+
+* `choices` A vector of elements to sort into buckets
+
+* `answer`: a `Vector{Pair{String, Vector{Int64}}}` where the key is the name of the "bucket" and the vector contains the indices of the properly sorted elements. (Order within the bucket is not considered.)
+
+Unlike the underlying WeBWorK widget, we put all values initially into the first bucket.
+
+## Example:
+```
+choices =  [
+        "mouse",        "ebola bacteria",
+        "flu virus",    "krill",
+        "house cat",    "emu",
+        "coyote",       "tapir",
+        "hippopotamus", "elephant",
+        "blue whale",   "eagle"
+    ]
+answers = ["Animals" => [],
+           "Mammals" => [ 1,5,7,8,9,10,11],
+           "Birds" => [6,12],
+           "Other" => [2,3,4]]
+subsetsortq("Organize the speciies", choices, answers)
+```
+"""
+function subsetsortq(question, choices, answer; instruction="Drag and drop the values into the appropriate bucket:")
+
+    solution =  [aᵢ .- 1 for aᵢ ∈ last.(answer)]
+    id = string(hash((question, choices, answer, solution)))
+
+    SubsetSortQ(id, question, answer,  choices, instruction)
+end
+
+function create_answer(r::SubsetSortQ)
+    buf = IOBuffer()
+    id = "draggable$(r.id)"
+
+    choices, answer = r.choices, r.answer
+
+    choices_buf = IOBuffer()
+    print(choices_buf, "[ ")
+    for (i,c) ∈ enumerate(choices)
+        i != 1 && print(choices_buf, ", ")
+        print(choices_buf, "\"", escape_string(string(c))[1:end-5], "\"")
+    end
+    print(choices_buf, " ]")
+    choices′ = String(take!(choices_buf))
+
+    solution =  [aᵢ .- 1 for aᵢ ∈ last.(answer)]
+    soln_buf = IOBuffer()
+    print(soln_buf, "[ ")
+    for (i,vs) in enumerate(solution)
+        i != 1 && print(soln_buf, ", ")
+        print(soln_buf, isempty(vs) ? "[]" : vs)
+    end
+    print(soln_buf, " ]")
+    solution′ = String(take!(soln_buf))
+
+    subset_buf = IOBuffer()
+    for (i,(l,r)) ∈ enumerate(answer)
+        i !=1 && println(subset_buf, ", ")
+        println(subset_buf, "{")
+        println(subset_buf, "label => '", l, "',")
+        println(subset_buf, "indices =>", (i==1 ? collect(0:length(choices)-1) : "[]"), ",")
+        println(subset_buf, "removable => 0")
+        println(subset_buf, "}")
+    end
+    default_subsets = String(take!(subset_buf))
+
+
+    println(buf, """
+\$$(id) = DraggableSubsets(
+$(choices′),
+$(solution′),
+DefaultSubsets => [
+$default_subsets
+],
+OrderedSubsets => 1,
+AllowNewBuckets => 0
+);
+""")
+
+    String(take!(buf))
+end
+
+show_question(r::SubsetSortQ) = """
+    $(escape_string(r.question, r.id))
+    \$BR
+\\{ \$draggable$(r.id)->Print \\}
+\$BR
+"""
+
+
+show_answer(r::SubsetSortQ) =  """
+ANS(\$draggable$(r.id)->cmp);
 """
 
 
