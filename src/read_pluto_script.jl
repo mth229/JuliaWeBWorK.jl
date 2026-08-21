@@ -81,7 +81,7 @@ function process_block(m, txt)
 end
 
 
-function read_script(f; line_delimiter_lambda=startswith("# ╔═╡ "), offset=1)
+function read_script(f; line_delimiter_lambda=startswith("# ╔═╡ "), offset::Int=1)
     m = Module()
     process_block(m, split("""
 using Markdown
