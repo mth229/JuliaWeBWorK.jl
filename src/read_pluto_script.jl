@@ -81,7 +81,7 @@ function process_block(m, txt)
 end
 
 
-function read_script(f)
+function read_script(f; line_delimiter_lambda=startswith("# ╔═╡ "), offset=1)
     m = Module()
     process_block(m, split("""
 using Markdown
@@ -93,13 +93,13 @@ letters = JuliaWeBWorK.LETTERS()
     ls = readlines(f)
     inds = findall(line_delimiter_lambda, ls)
 
-    intro_lines = ls[inds[2]+1 : inds[3]-1]
+    intro_lines = ls[inds[1+offset]+1 : inds[2+offset]-1]
     # intro lines define meta, answer_context
     intro = process_block(m, intro_lines)
     meta = isdefined(m, :meta) ? m.meta : ()
     answer_context = isdefined(m, :answer_context) ? m.answer_context : Dict{Symbol, String}()
 
-    for i in 4:length(inds)
+    for i in (3+offset):length(inds)
         lines = ls[inds[i-1]+1:inds[i]-1]
         o = process_block(m, lines)
         isa(o, JuliaWeBWorK.AbstractQ) &&  push!(qs, o)
