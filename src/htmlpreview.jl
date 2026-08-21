@@ -74,7 +74,7 @@ end
 _blank_ = "____"
 function question_html(r::FixedRandomQ)
     q = _to_md(r.question)
-    a = _to_md(r.answer)
+    a = _to_md.(r.answer)
     o =  _blank_
 
     (; q, a, o)
